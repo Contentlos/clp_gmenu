@@ -134,6 +134,147 @@ function Bridge.getForModel(model)
 end
 
 -- ============================================================
+--  FIND ACTION BY ID (across all bridge tables) -- used by Registry.execute
+-- ============================================================
+
+--- Sucht eine Bridge-Aktion nach ID. Optional ctx mit npcId/zoneName/model
+--- um die Suche einzugrenzen (sonst wird ueber alle Tabellen gesucht).
+function Bridge.findAction(id, ctx)
+    if not id then return nil end
+    ctx = ctx or {}
+
+    -- ctx-spezifische zuerst
+    if ctx.npcId and Bridge.byNpc[ctx.npcId] and Bridge.byNpc[ctx.npcId][id] then
+        return Bridge.byNpc[ctx.npcId][id]
+    end
+    if ctx.zoneName and Bridge.byZone[ctx.zoneName] and Bridge.byZone[ctx.zoneName][id] then
+        return Bridge.byZone[ctx.zoneName][id]
+    end
+    if ctx.model and ctx.model ~= 0 then
+        local hash = type(ctx.model) == 'string' and joaat(ctx.model) or ctx.model
+        if Bridge.byModel[hash] and Bridge.byModel[hash][id] then
+            return Bridge.byModel[hash][id]
+        end
+    end
+
+    -- byTarget durchsuchen (alle Targets)
+    for _, list in pairs(Bridge.byTarget) do
+        if list[id] then return list[id] end
+    end
+
+    -- byNpc / byZone / byModel durchsuchen wenn ctx leer war
+    for _, list in pairs(Bridge.byNpc) do
+        if list[id] then return list[id] end
+    end
+    for _, list in pairs(Bridge.byZone) do
+        if list[id] then return list[id] end
+    end
+    for _, list in pairs(Bridge.byModel) do
+        if list[id] then return list[id] end
+    end
+
+    return nil
+end
+
+-- ============================================================
+--  RE-REGISTRATION HOOK (Drittanbieter-Resourcen, die clp_gmenu nutzen)
+-- ============================================================
+
+-- Subscriber fuer onResourceStart, damit Drittanbieter-Resourcen ihre
+-- Aktionen nach Restart wieder registrieren koennen.
+local rereg = {}
+
+function Bridge.onResourceStart(fn)
+    if type(fn) == 'function' then
+        rereg[#rereg + 1] = fn
+    end
+end
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName == GetCurrentResourceName() then return end
+    -- Kleines Delay damit der Drittanbieter seine Module geladen hat
+    SetTimeout(2000, function()
+        for i = 1, #rereg do
+            local ok, err = pcall(rereg[i], resourceName)
+            if not ok and Config and Config.Debug then
+                print(('^3[clp_gmenu]^0 Bridge.reregister Fehler in %s: %s'):format(resourceName, tostring(err)))
+            end
+        end
+        -- TriggerEvent damit Drittanbieter selbst lauschen koennen ("re-register
+        -- your stuff!"). Empfaenger sollten ihre exports erneut aufrufen.
+        TriggerEvent('clp_gmenu:bridge:reregister', resourceName)
+    end)
+end)
+
+-- Aktionen einer bestimmten Resource entfernen (wenn diese stoppt)
+local function removeByResource(resourceName)
+    if not resourceName then return end
+    local function purge(tbl)
+        for key, list in pairs(tbl) do
+            if type(list) == 'table' then
+                for id, action in pairs(list) do
+                    if action and action._resource == resourceName then
+                        list[id] = nil
+                    end
+                end
+            end
+        end
+    end
+    purge(Bridge.byTarget)
+    purge(Bridge.byNpc)
+    purge(Bridge.byZone)
+    purge(Bridge.byModel)
+end
+
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName == GetCurrentResourceName() then return end
+    removeByResource(resourceName)
+end)
+
+-- Helper: bei Aktions-Registrierung die Source-Resource taggen
+local origRegister = Bridge.registerAction
+function Bridge.registerAction(target, action)
+    local ok, idOrErr = origRegister(target, action)
+    if ok then
+        local invoking = GetInvokingResource() or 'unknown'
+        for _, list in pairs(Bridge.byTarget) do
+            if list[idOrErr] then list[idOrErr]._resource = invoking end
+        end
+    end
+    return ok, idOrErr
+end
+
+local origRegisterNpc = Bridge.registerNpcAction
+function Bridge.registerNpcAction(npcId, action)
+    local ok, idOrErr = origRegisterNpc(npcId, action)
+    if ok and Bridge.byNpc[npcId] and Bridge.byNpc[npcId][idOrErr] then
+        Bridge.byNpc[npcId][idOrErr]._resource = GetInvokingResource() or 'unknown'
+    end
+    return ok, idOrErr
+end
+
+local origRegisterZone = Bridge.registerZoneAction
+function Bridge.registerZoneAction(zoneName, action)
+    local ok, idOrErr = origRegisterZone(zoneName, action)
+    if ok and Bridge.byZone[zoneName] and Bridge.byZone[zoneName][idOrErr] then
+        Bridge.byZone[zoneName][idOrErr]._resource = GetInvokingResource() or 'unknown'
+    end
+    return ok, idOrErr
+end
+
+local origRegisterModel = Bridge.registerModelAction
+function Bridge.registerModelAction(model, action)
+    local ok, idOrErr = origRegisterModel(model, action)
+    if ok then
+        local hash = type(model) == 'string' and joaat(model) or model
+        if Bridge.byModel[hash] and Bridge.byModel[hash][idOrErr] then
+            Bridge.byModel[hash][idOrErr]._resource = GetInvokingResource() or 'unknown'
+        end
+    end
+    return ok, idOrErr
+end
+
+-- ============================================================
 --  EXPORTS (other resources)
 -- ============================================================
 
@@ -142,6 +283,7 @@ exports('registerAction',       function(action) return Bridge.registerAction(ac
 exports('removeAction',         function(id) return Bridge.removeAction(id) end)
 exports('registerNpcAction',    function(npcId, action) return Bridge.registerNpcAction(npcId, action) end)
 exports('registerZoneAction',   function(zoneName, action) return Bridge.registerZoneAction(zoneName, action) end)
+exports('registerModelAction',  function(model, action) return Bridge.registerModelAction(model, action) end)
 exports('registerModelAction',  function(model, action) return Bridge.registerModelAction(model, action) end)
 
 -- ============================================================

@@ -250,7 +250,11 @@ function M._finishOpen(target, result, netId)
     }
 
     M.openTarget = U.deepCopy(payload.target)
-    M.openTarget.entity = target.entity
+    M.openTarget.entity   = target.entity
+    M.openTarget.npcId    = target.npcId
+    M.openTarget.zoneName = target.zoneName
+    M.openTarget.model    = target.model
+    M.openTarget.coords   = target.coords
 
     M.open = true
     M.lastOpenAt = nowMs()

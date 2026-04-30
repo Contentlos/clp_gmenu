@@ -167,6 +167,98 @@ local function dispatchCustomAction(src, target, action)
 end
 
 -- ============================================================
+--  BRIDGE-AKTION DISPATCH
+--
+--  Bridge-Aktionen kommen aus Drittanbieter-Resource-Code (vertraut).
+--  Sie unterstuetzen die ox_target-Felder: serverEvent, event, command,
+--  und auch das normalisierte type-Feld (clientEvent/serverEvent/handler/notify/ui).
+-- ============================================================
+
+local function buildTargetForBridge(target, payload)
+    return {
+        type     = target.type,
+        entity   = target.entity,
+        netId    = target.netId,
+        coords   = target.coords or payload.coords,
+        npcId    = target.npcId,
+        zoneName = target.zoneName,
+        model    = target.model,
+        targetSrc= target.targetSrc,
+        isPlayer = target.isPlayer,
+    }
+end
+
+local function dispatchBridgeAction(src, target, action, payload)
+    local extra = payload.extra or {}
+    local tgt = buildTargetForBridge(target, payload)
+
+    -- Per-Action Cooldown (falls definiert)
+    if action.cooldown and action.cooldown > 0 then
+        Perms = Perms or GMenu.Perms
+        if Perms and Perms.checkActionCooldown then
+            local okCool, remainSec = Perms.checkActionCooldown(src, action.id, action.cooldown)
+            if not okCool then
+                TriggerClientEvent('ox_lib:notify', src, {
+                    type = 'warning',
+                    description = ('Bitte warten (%.1fs)'):format(remainSec or action.cooldown),
+                })
+                return false, 'Action-Cooldown'
+            end
+        end
+    end
+
+    -- Bridge-spezifische requiredItems / requiredGroups Filter
+    if action.requiredItems and not (Perms.hasItems and Perms.hasItems(src, action.requiredItems)) then
+        return false, 'Fehlende Items'
+    end
+
+    -- Dispatch nach normalisiertem type-Feld
+    local kind = action.type
+    local event = action.event
+
+    if kind == 'serverEvent' and event then
+        TriggerEvent(event, src, tgt, extra, action.payload)
+        return true
+
+    elseif kind == 'clientEvent' and event then
+        -- Beim auslosenden Spieler einen Event triggern
+        TriggerClientEvent(event, src, tgt, extra, action.payload)
+        return true
+
+    elseif kind == 'command' and event then
+        ExecuteCommand(event)
+        return true
+
+    elseif kind == 'notify' then
+        local payloadMsg = action.payload or {}
+        TriggerClientEvent('ox_lib:notify', src, {
+            type        = payloadMsg.type or 'inform',
+            title       = payloadMsg.title or action.label or 'Aktion',
+            description = (type(payloadMsg) == 'string') and payloadMsg or (payloadMsg.text or payloadMsg.description or action.label or ''),
+        })
+        return true
+
+    elseif kind == 'ui' then
+        -- UI-Aktionen werden client-seitig ausgewertet (z.B. via clp_gmenu:ui:open)
+        TriggerClientEvent('clp_gmenu:bridge:ui', src, action, tgt)
+        return true
+
+    elseif kind == 'handler' then
+        -- onSelect-Callback existiert client-seitig (msgpack-serialisiert via ox_lib).
+        -- Server triggert ein Client-Event, das die Bridge-Layer dort ausfuehrt.
+        TriggerClientEvent('clp_gmenu:bridge:execute', src, action.id, tgt)
+        return true
+    end
+
+    -- Fallback: ueber dispatchCustomAction (alte Whitelist-Variante)
+    if action.type then
+        return dispatchCustomAction(src, target, action)
+    end
+
+    return false, 'Bridge-Aktion: kein Dispatch-Pfad'
+end
+
+-- ============================================================
 --  HAUPT-DISPATCH
 -- ============================================================
 
@@ -183,8 +275,17 @@ function Registry.execute(src, payload)
         return false, 'Rate-Limit erreicht'
     end
 
-    -- Aktions-Definition holen (Standard ODER Custom)
+    -- Aktions-Definition holen (Standard / Custom / Bridge)
     local action = Store.getAction(payload.actionId)
+    local isBridge = false
+    if not action and GMenu.Bridge and GMenu.Bridge.findAction then
+        action = GMenu.Bridge.findAction(payload.actionId, {
+            npcId    = payload.npcId,
+            zoneName = payload.zoneName,
+            model    = payload.model,
+        })
+        isBridge = action ~= nil
+    end
     if not action then return false, 'Unbekannte Aktion' end
 
     -- Self-Aktionen: kein Ziel noetig, eigener Ped ist das Ziel
@@ -247,6 +348,13 @@ function Registry.execute(src, payload)
             netId    = target.netId,
             targetSrc= target.targetSrc,
         })
+    end
+
+    -- BRIDGE-Aktion (von Drittanbieter-Resource registriert)
+    -- Nicht via Whitelist, weil Bridge-Aktionen aus Resource-Code stammen (vertraut),
+    -- nicht aus User-Input. Dispatch nach normalisiertem `type`-Feld.
+    if isBridge then
+        return dispatchBridgeAction(src, target, action, payload)
     end
 
     -- Ausfuehrung

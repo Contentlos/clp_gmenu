@@ -274,11 +274,63 @@ function P.consumeAdmin(src)
     return checkBucket(src, adminBuckets, Config.AdminRateLimitPerSec or 10)
 end
 
+-- ============================================================
+--  PER-ACTION COOLDOWN (separate Logik fuer "max 1x alle X Sekunden pro Aktion")
+--  Limits sind in Config.ActionCooldownMin (Sekunden) und Config.ActionCooldownMax
+--  geclamped, um Missbrauch zu vermeiden.
+-- ============================================================
+
+local actionCooldowns = {}    -- [src] = { [actionId] = lastTs }
+
+function P.checkActionCooldown(src, actionId, cooldownSec)
+    if not src or not actionId or not cooldownSec or cooldownSec <= 0 then return true end
+    local minC = Config.ActionCooldownMin or 0.1
+    local maxC = Config.ActionCooldownMax or 300.0
+    cooldownSec = math.max(minC, math.min(maxC, cooldownSec))
+
+    local now = GetGameTimer() / 1000.0
+    actionCooldowns[src] = actionCooldowns[src] or {}
+    local last = actionCooldowns[src][actionId] or 0
+    local elapsed = now - last
+    if elapsed < cooldownSec then
+        return false, cooldownSec - elapsed    -- false + verbleibende Sekunden
+    end
+    actionCooldowns[src][actionId] = now
+    return true
+end
+
+-- ============================================================
+--  ITEM-CHECK (ox_inventory)
+-- ============================================================
+
+function P.hasItems(src, requiredItems)
+    if type(requiredItems) ~= 'table' then return true end
+    if not GetResourceState or GetResourceState('ox_inventory') ~= 'started' then
+        -- ohne ox_inventory: ESX-Fallback
+        local x = P.getXPlayer(src)
+        if not x or not x.getInventoryItem then return false end
+        for itemName, count in pairs(requiredItems) do
+            local item = x.getInventoryItem(itemName)
+            if not item or (item.count or 0) < (tonumber(count) or 1) then return false end
+        end
+        return true
+    end
+
+    -- Mit ox_inventory
+    for itemName, count in pairs(requiredItems) do
+        local n = tonumber(count) or 1
+        local total = exports.ox_inventory and exports.ox_inventory:Search(src, 'count', itemName) or 0
+        if (total or 0) < n then return false end
+    end
+    return true
+end
+
 AddEventHandler('playerDropped', function()
     local src = source
     buckets[src] = nil
     adminBuckets[src] = nil
     permCache[src] = nil
+    actionCooldowns[src] = nil
 end)
 
 -- ============================================================

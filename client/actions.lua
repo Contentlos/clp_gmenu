@@ -47,6 +47,17 @@ function A.execute(actionId, target)
         pedModel  = GetEntityModel(target.entity)
     end
 
+    -- Bridge-Lookup-Hints (NPC/Zone/Model)
+    local zoneName = target.zoneName
+    local npcId    = target.npcId
+    local model    = target.model
+    if not model and target.entity and target.entity ~= 0 then
+        local etype = GetEntityType(target.entity)
+        if etype == 3 or etype == 2 then -- Object oder Vehicle
+            model = GetEntityModel(target.entity)
+        end
+    end
+
     -- Server-Event ausloesen (Server fuehrt ALLE Pruefungen durch)
     TriggerServerEvent('clp_gmenu:executeAction', {
         actionId   = actionId,
@@ -55,6 +66,10 @@ function A.execute(actionId, target)
         extra      = extra,
         pedCoords  = pedCoords,
         pedModel   = pedModel,
+        npcId      = npcId,
+        zoneName   = zoneName,
+        model      = model,
+        coords     = target.coords,
     })
 end
 
