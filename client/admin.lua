@@ -128,6 +128,16 @@ RegisterNUICallback('admin:audit', function(data, cb)
     cb(list or {})
 end)
 
+RegisterNUICallback('admin:bridges', function(_, cb)
+    local data = lib.callback.await('clp_gmenu:admin:bridges', false)
+    cb(data or { byTarget = {}, byNpc = {}, byZone = {}, byModel = {} })
+end)
+
+RegisterNUICallback('admin:storage', function(_, cb)
+    local data = lib.callback.await('clp_gmenu:admin:storage', false)
+    cb(data or {})
+end)
+
 -- ============================================================
 --  RESOURCE STOP CLEANUP
 -- ============================================================

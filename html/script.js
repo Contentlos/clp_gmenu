@@ -619,8 +619,10 @@ window.addEventListener('message', (event) => {
     .then(result => {
         if (result === null || result === undefined) return;
         const cbToEvent = {
-            audit:  'auditList',
-            export: 'exportData',
+            audit:   'auditList',
+            export:  'exportData',
+            bridges: 'bridgesList',
+            storage: 'storageStatus',
         };
         const evt = cbToEvent[d.cb];
         if (!evt) return;

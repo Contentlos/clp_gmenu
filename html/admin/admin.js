@@ -139,6 +139,9 @@ function renderAll() {
     renderCustomActions();
     renderItems();
     renderGlobals();
+    renderNpcs();
+    renderZones();
+    renderIdentity();
 }
 
 // ============================================================
@@ -152,7 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
             t.classList.add('active');
             const target = t.dataset.tab;
             qsa('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === target));
-            if (target === 'audit') refreshAudit();
+            if (target === 'audit')   refreshAudit();
+            if (target === 'bridges') refreshBridges();
+            if (target === 'storage') refreshStorage();
+            if (target === 'identity') renderIdentity();
         });
     });
 
@@ -200,6 +206,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Audit refresh
     $('btn-refresh-audit').addEventListener('click', refreshAudit);
+
+    // NPCs / Zones / Bridges / Storage
+    $('btn-add-npc') && $('btn-add-npc').addEventListener('click', addNewNpc);
+    $('npcs-search') && $('npcs-search').addEventListener('input', e => {
+        State.filters.npcs = (e.target.value || '').toLowerCase();
+        renderNpcs();
+    });
+    $('btn-add-zone') && $('btn-add-zone').addEventListener('click', addNewZone);
+    $('zones-search') && $('zones-search').addEventListener('input', e => {
+        State.filters.zones = (e.target.value || '').toLowerCase();
+        renderZones();
+    });
+    $('btn-refresh-bridges') && $('btn-refresh-bridges').addEventListener('click', refreshBridges);
+    $('btn-refresh-storage') && $('btn-refresh-storage').addEventListener('click', refreshStorage);
 
     // ESC schliesst Editor
     document.addEventListener('keyup', (e) => {
@@ -937,6 +957,10 @@ window.addEventListener('message', (event) => {
     const d = event.data || {};
     if (d.event === 'auditList' && Array.isArray(d.payload)) {
         renderAudit(d.payload);
+    } else if (d.event === 'bridgesList' && d.payload) {
+        renderBridges(d.payload);
+    } else if (d.event === 'storageStatus' && d.payload) {
+        renderStorage(d.payload);
     }
 });
 
@@ -959,6 +983,491 @@ function renderAudit(list) {
         `;
         wrap.appendChild(row);
     });
+}
+
+// ============================================================
+//  NPCs TAB
+// ============================================================
+
+function renderNpcs() {
+    const wrap = $('npcs-list');
+    if (!wrap || !State.snapshot) return;
+    const npcs  = State.snapshot.npcs || {};
+    const allActions = collectAllActions();
+    const search = State.filters.npcs || '';
+    wrap.innerHTML = '';
+
+    const ids = Object.keys(npcs).sort();
+    let count = 0;
+    ids.forEach(id => {
+        const n = npcs[id] || {};
+        const blob = (id + ' ' + (n.label||'') + ' ' + (n.model||'')).toLowerCase();
+        if (search && !blob.includes(search)) return;
+        count++;
+        const card = document.createElement('div');
+        card.className = 'npc-card';
+        const coords = n.coords || {};
+        card.innerHTML = `
+            <div class="npc-head">
+                <div class="npc-title">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <strong>${escapeHtml(n.label || id)}</strong>
+                    <span class="badge">${escapeHtml(id)}</span>
+                </div>
+                <div class="npc-actions-bar">
+                    <button class="btn-ghost" data-act="del-npc" data-id="${escapeAttr(id)}"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="npc-grid">
+                <label>Label<input type="text" data-field="label" value="${escapeAttr(n.label || '')}"></label>
+                <label>Modell<input type="text" data-field="model" value="${escapeAttr(n.model || 'a_m_y_business_01')}"></label>
+                <label>X<input type="number" step="0.01" data-field="x" value="${coords.x || 0}"></label>
+                <label>Y<input type="number" step="0.01" data-field="y" value="${coords.y || 0}"></label>
+                <label>Z<input type="number" step="0.01" data-field="z" value="${coords.z || 0}"></label>
+                <label>Heading<input type="number" step="1" data-field="heading" value="${n.heading || 0}"></label>
+                <label>Job-Filter (optional)<input type="text" data-field="requiredJob" value="${escapeAttr(n.requiredJob || '')}" placeholder="leer = alle"></label>
+                <label>Frozen<input type="checkbox" data-field="frozen" ${n.frozen !== false ? 'checked' : ''}></label>
+                <label>Invincible<input type="checkbox" data-field="invincible" ${n.invincible !== false ? 'checked' : ''}></label>
+            </div>
+            <div class="npc-actions">
+                <h4>Aktionen</h4>
+                <div class="chip-list">
+                    ${(n.actions || []).map(a => `
+                        <span class="chip">
+                            ${escapeHtml(a)}
+                            <button data-act="del-npc-action" data-id="${escapeAttr(id)}" data-action="${escapeAttr(a)}"><i class="fa-solid fa-xmark"></i></button>
+                        </span>
+                    `).join('')}
+                    <select data-act="add-npc-action" data-id="${escapeAttr(id)}">
+                        <option value="">+ Aktion zuweisen…</option>
+                        ${allActions.filter(a => !(n.actions||[]).includes(a.id))
+                                    .map(a => `<option value="${escapeAttr(a.id)}">${escapeHtml(a.label)} (${escapeHtml(a.id)})</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        `;
+        // Wire field changes
+        card.querySelectorAll('input[data-field], select[data-field]').forEach(el => {
+            el.addEventListener('change', () => updateNpcField(id, el));
+        });
+        // Delete NPC
+        card.querySelector('[data-act="del-npc"]').addEventListener('click', () => {
+            if (confirm('NPC "' + id + '" loeschen?')) {
+                deletePath('npcs.' + id);
+                delete State.snapshot.npcs[id];
+                renderNpcs();
+            }
+        });
+        // Add action
+        const addSel = card.querySelector('[data-act="add-npc-action"]');
+        addSel && addSel.addEventListener('change', () => {
+            if (!addSel.value) return;
+            const cur = State.snapshot.npcs[id].actions || [];
+            cur.push(addSel.value);
+            State.snapshot.npcs[id].actions = cur;
+            patchPath('npcs.' + id + '.actions', cur);
+            renderNpcs();
+        });
+        // Remove action
+        card.querySelectorAll('[data-act="del-npc-action"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const aid = btn.dataset.action;
+                const cur = (State.snapshot.npcs[id].actions || []).filter(x => x !== aid);
+                State.snapshot.npcs[id].actions = cur;
+                patchPath('npcs.' + id + '.actions', cur);
+                renderNpcs();
+            });
+        });
+        wrap.appendChild(card);
+    });
+    if (count === 0) {
+        wrap.innerHTML = '<div class="empty-state" style="padding:40px;"><p>Keine NPCs definiert. Klick oben rechts auf <strong>NPC hinzufuegen</strong>.</p></div>';
+    }
+}
+
+function updateNpcField(id, el) {
+    const f = el.dataset.field;
+    const cur = State.snapshot.npcs[id] || {};
+    if (f === 'x' || f === 'y' || f === 'z') {
+        cur.coords = cur.coords || { x:0, y:0, z:0 };
+        cur.coords[f] = parseFloat(el.value) || 0;
+        patchPath('npcs.' + id + '.coords', cur.coords);
+    } else if (f === 'heading') {
+        cur.heading = parseFloat(el.value) || 0;
+        patchPath('npcs.' + id + '.heading', cur.heading);
+    } else if (el.type === 'checkbox') {
+        cur[f] = el.checked;
+        patchPath('npcs.' + id + '.' + f, el.checked);
+    } else {
+        const v = el.value;
+        cur[f] = v === '' ? null : v;
+        if (v === '') deletePath('npcs.' + id + '.' + f);
+        else patchPath('npcs.' + id + '.' + f, v);
+    }
+    State.snapshot.npcs[id] = cur;
+}
+
+function addNewNpc() {
+    const id = (prompt('Neue NPC-ID (snake_case, eindeutig):') || '').trim();
+    if (!id) return;
+    if (!/^[a-z][a-z0-9_]*$/.test(id)) {
+        alert('Ungueltige ID. Erlaubt: a-z, 0-9, _');
+        return;
+    }
+    if ((State.snapshot.npcs || {})[id]) {
+        alert('NPC-ID existiert bereits.');
+        return;
+    }
+    const def = {
+        label: id,
+        model: 'a_m_y_business_01',
+        coords: { x: 0, y: 0, z: 30.0 },
+        heading: 0,
+        frozen: true,
+        invincible: true,
+        actions: [],
+    };
+    State.snapshot.npcs = State.snapshot.npcs || {};
+    State.snapshot.npcs[id] = def;
+    patchPath('npcs.' + id, def);
+    renderNpcs();
+}
+
+// ============================================================
+//  ZONES TAB
+// ============================================================
+
+function renderZones() {
+    const wrap = $('zones-list');
+    if (!wrap || !State.snapshot) return;
+    const zones = State.snapshot.zones || {};
+    const allActions = collectAllActions();
+    const search = State.filters.zones || '';
+    wrap.innerHTML = '';
+
+    const names = Object.keys(zones).sort();
+    let count = 0;
+    names.forEach(name => {
+        const z = zones[name] || {};
+        const blob = (name + ' ' + (z.label||'') + ' ' + (z.type||'')).toLowerCase();
+        if (search && !blob.includes(search)) return;
+        count++;
+        const c = z.coords || {};
+        const s = z.size   || {};
+        const card = document.createElement('div');
+        card.className = 'zone-card';
+        card.innerHTML = `
+            <div class="npc-head">
+                <div class="npc-title">
+                    <i class="fa-solid fa-draw-polygon"></i>
+                    <strong>${escapeHtml(z.label || name)}</strong>
+                    <span class="badge">${escapeHtml(name)}</span>
+                    <span class="badge">${escapeHtml(z.type || 'box')}</span>
+                </div>
+                <div class="npc-actions-bar">
+                    <button class="btn-ghost" data-act="del-zone" data-id="${escapeAttr(name)}"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="npc-grid">
+                <label>Label<input type="text" data-field="label" value="${escapeAttr(z.label || '')}"></label>
+                <label>Typ
+                    <select data-field="type">
+                        <option value="box"    ${z.type === 'box'    ? 'selected' : ''}>Box</option>
+                        <option value="sphere" ${z.type === 'sphere' ? 'selected' : ''}>Sphere</option>
+                    </select>
+                </label>
+                <label>X<input type="number" step="0.01" data-field="x" value="${c.x || 0}"></label>
+                <label>Y<input type="number" step="0.01" data-field="y" value="${c.y || 0}"></label>
+                <label>Z<input type="number" step="0.01" data-field="z" value="${c.z || 0}"></label>
+                <label>Size X / Radius<input type="number" step="0.1" data-field="sx" value="${s.x || z.radius || 2}"></label>
+                <label>Size Y<input type="number" step="0.1" data-field="sy" value="${s.y || 2}"></label>
+                <label>Size Z<input type="number" step="0.1" data-field="sz" value="${s.z || 2}"></label>
+                <label>Required Job (optional)<input type="text" data-field="requiredJob" value="${escapeAttr(z.requiredJob || '')}" placeholder="leer = alle"></label>
+                <label>Required Duty<input type="checkbox" data-field="requiredDuty" ${z.requiredDuty ? 'checked' : ''}></label>
+            </div>
+            <div class="npc-actions">
+                <h4>Aktionen</h4>
+                <div class="chip-list">
+                    ${(z.actions || []).map(a => `
+                        <span class="chip">
+                            ${escapeHtml(a)}
+                            <button data-act="del-zone-action" data-id="${escapeAttr(name)}" data-action="${escapeAttr(a)}"><i class="fa-solid fa-xmark"></i></button>
+                        </span>
+                    `).join('')}
+                    <select data-act="add-zone-action" data-id="${escapeAttr(name)}">
+                        <option value="">+ Aktion zuweisen…</option>
+                        ${allActions.filter(a => !(z.actions||[]).includes(a.id))
+                                    .map(a => `<option value="${escapeAttr(a.id)}">${escapeHtml(a.label)} (${escapeHtml(a.id)})</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        `;
+        card.querySelectorAll('input[data-field], select[data-field]').forEach(el => {
+            el.addEventListener('change', () => updateZoneField(name, el));
+        });
+        card.querySelector('[data-act="del-zone"]').addEventListener('click', () => {
+            if (confirm('Zone "' + name + '" loeschen?')) {
+                deletePath('zones.' + name);
+                delete State.snapshot.zones[name];
+                renderZones();
+            }
+        });
+        const addSel = card.querySelector('[data-act="add-zone-action"]');
+        addSel && addSel.addEventListener('change', () => {
+            if (!addSel.value) return;
+            const cur = State.snapshot.zones[name].actions || [];
+            cur.push(addSel.value);
+            State.snapshot.zones[name].actions = cur;
+            patchPath('zones.' + name + '.actions', cur);
+            renderZones();
+        });
+        card.querySelectorAll('[data-act="del-zone-action"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const aid = btn.dataset.action;
+                const cur = (State.snapshot.zones[name].actions || []).filter(x => x !== aid);
+                State.snapshot.zones[name].actions = cur;
+                patchPath('zones.' + name + '.actions', cur);
+                renderZones();
+            });
+        });
+        wrap.appendChild(card);
+    });
+    if (count === 0) {
+        wrap.innerHTML = '<div class="empty-state" style="padding:40px;"><p>Keine Zonen definiert. Klick oben rechts auf <strong>Zone hinzufuegen</strong>.</p></div>';
+    }
+}
+
+function updateZoneField(name, el) {
+    const f = el.dataset.field;
+    const cur = State.snapshot.zones[name] || {};
+    if (f === 'x' || f === 'y' || f === 'z') {
+        cur.coords = cur.coords || { x:0, y:0, z:0 };
+        cur.coords[f] = parseFloat(el.value) || 0;
+        patchPath('zones.' + name + '.coords', cur.coords);
+    } else if (f === 'sx' || f === 'sy' || f === 'sz') {
+        if (cur.type === 'sphere' && f === 'sx') {
+            cur.radius = parseFloat(el.value) || 0;
+            patchPath('zones.' + name + '.radius', cur.radius);
+        } else {
+            cur.size = cur.size || { x:2, y:2, z:2 };
+            cur.size[f.slice(1)] = parseFloat(el.value) || 0;
+            patchPath('zones.' + name + '.size', cur.size);
+        }
+    } else if (el.type === 'checkbox') {
+        cur[f] = el.checked;
+        patchPath('zones.' + name + '.' + f, el.checked);
+    } else {
+        const v = el.value;
+        cur[f] = v === '' ? null : v;
+        if (v === '') deletePath('zones.' + name + '.' + f);
+        else patchPath('zones.' + name + '.' + f, v);
+    }
+    State.snapshot.zones[name] = cur;
+}
+
+function addNewZone() {
+    const name = (prompt('Neuer Zonen-Name (snake_case, eindeutig):') || '').trim();
+    if (!name) return;
+    if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+        alert('Ungueltiger Name. Erlaubt: a-z, 0-9, _');
+        return;
+    }
+    if ((State.snapshot.zones || {})[name]) {
+        alert('Zonen-Name existiert bereits.');
+        return;
+    }
+    const def = {
+        label: name,
+        type: 'box',
+        coords: { x: 0, y: 0, z: 30.0 },
+        size:   { x: 2, y: 2, z: 2 },
+        actions: [],
+    };
+    State.snapshot.zones = State.snapshot.zones || {};
+    State.snapshot.zones[name] = def;
+    patchPath('zones.' + name, def);
+    renderZones();
+}
+
+// ============================================================
+//  BRIDGES TAB (read-only)
+// ============================================================
+
+function refreshBridges() {
+    sendToLua('bridges', {});
+    $('bridges-list').innerHTML = '<div class="empty-state"><p>L&auml;dt...</p></div>';
+}
+
+function renderBridges(data) {
+    const wrap = $('bridges-list');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const sections = [
+        { key: 'byTarget', title: 'Per Target-Type' },
+        { key: 'byNpc',    title: 'Per NPC-ID' },
+        { key: 'byZone',   title: 'Per Zonen-Name' },
+        { key: 'byModel',  title: 'Per Modell-Hash' },
+    ];
+    let total = 0;
+    sections.forEach(sec => {
+        const map = data[sec.key] || {};
+        const keys = Object.keys(map).sort();
+        if (keys.length === 0) return;
+        const sect = document.createElement('div');
+        sect.className = 'bridge-section';
+        sect.innerHTML = `<h3>${escapeHtml(sec.title)}</h3>`;
+        keys.forEach(k => {
+            const list = map[k] || [];
+            if (!list.length) return;
+            total += list.length;
+            const block = document.createElement('div');
+            block.className = 'bridge-block';
+            block.innerHTML = `
+                <div class="bridge-block-head"><strong>${escapeHtml(k)}</strong><span class="badge">${list.length}</span></div>
+                <div class="bridge-actions">
+                    ${list.map(a => `
+                        <div class="bridge-row">
+                            <i class="fa-solid ${escapeAttr(a.icon || 'fa-circle')}"></i>
+                            <div class="bridge-meta">
+                                <strong>${escapeHtml(a.label || a.id || '?')}</strong>
+                                <small>${escapeHtml(a.id || '')} ${a.event ? '· event: ' + escapeHtml(a.event) : ''} ${a.source ? '· src: ' + escapeHtml(a.source) : ''}</small>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            sect.appendChild(block);
+        });
+        wrap.appendChild(sect);
+    });
+    if (total === 0) {
+        wrap.innerHTML = '<div class="empty-state" style="padding:40px;"><p>Keine Bridge-Aktionen registriert.</p></div>';
+    }
+}
+
+// ============================================================
+//  IDENTITY TAB
+// ============================================================
+
+function renderIdentity() {
+    const wrap = $('identity-form');
+    if (!wrap || !State.snapshot) return;
+    const i = State.snapshot.identity || {};
+    wrap.innerHTML = `
+        <div class="form-row">
+            <label>Label fuer unbekannten maennlichen Spieler</label>
+            <input type="text" id="i-male"   value="${escapeAttr(i.strangerMale   || 'Fremder')}">
+        </div>
+        <div class="form-row">
+            <label>Label fuer unbekannte weibliche Spielerin</label>
+            <input type="text" id="i-female" value="${escapeAttr(i.strangerFemale || 'Fremde')}">
+        </div>
+        <div class="form-row">
+            <label>Fallback (kein Geschlecht bekannt)</label>
+            <input type="text" id="i-unknown" value="${escapeAttr(i.strangerUnknown || 'Unbekannte Person')}">
+        </div>
+        <div class="form-row">
+            <label>Hand geben aktiviert</label>
+            <label class="toggle-mini"><input type="checkbox" id="i-handshake" ${i.allowHandshake !== false ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="form-row">
+            <label>Visitenkarte aktiviert</label>
+            <label class="toggle-mini"><input type="checkbox" id="i-card" ${i.allowCard !== false ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="form-row">
+            <label>Beim Handschlag dauerhaft lernen</label>
+            <label class="toggle-mini"><input type="checkbox" id="i-learn" ${i.learnOnHandshake !== false ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="form-row">
+            <label>Handschlag Timeout (ms)</label>
+            <input type="number" id="i-timeout" min="2000" max="60000" step="500" value="${i.handshakeTimeoutMs || 10000}">
+        </div>
+        <div class="form-row">
+            <label>Maximale Distanz (Meter)</label>
+            <input type="number" id="i-distance" min="1" max="10" step="0.1" value="${i.maxDistance || 3.5}">
+        </div>
+    `;
+    const wireText = (id, key) => $(id).addEventListener('change', e => {
+        const v = e.target.value;
+        State.snapshot.identity = State.snapshot.identity || {};
+        State.snapshot.identity[key] = v;
+        patchPath('identity.' + key, v);
+    });
+    const wireBool = (id, key) => $(id).addEventListener('change', e => {
+        State.snapshot.identity = State.snapshot.identity || {};
+        State.snapshot.identity[key] = e.target.checked;
+        patchPath('identity.' + key, e.target.checked);
+    });
+    const wireNum = (id, key) => $(id).addEventListener('change', e => {
+        const v = parseFloat(e.target.value) || 0;
+        State.snapshot.identity = State.snapshot.identity || {};
+        State.snapshot.identity[key] = v;
+        patchPath('identity.' + key, v);
+    });
+    wireText('i-male',     'strangerMale');
+    wireText('i-female',   'strangerFemale');
+    wireText('i-unknown',  'strangerUnknown');
+    wireBool('i-handshake','allowHandshake');
+    wireBool('i-card',     'allowCard');
+    wireBool('i-learn',    'learnOnHandshake');
+    wireNum ('i-timeout',  'handshakeTimeoutMs');
+    wireNum ('i-distance', 'maxDistance');
+}
+
+// ============================================================
+//  STORAGE TAB (read-only)
+// ============================================================
+
+function refreshStorage() {
+    sendToLua('storage', {});
+    $('storage-info').innerHTML = '<div class="empty-state"><p>L&auml;dt...</p></div>';
+}
+
+function renderStorage(data) {
+    const wrap = $('storage-info');
+    if (!wrap) return;
+    const stat = (label, value, icon) => `
+        <div class="storage-stat">
+            <i class="fa-solid ${icon || 'fa-circle-check'}"></i>
+            <div>
+                <strong>${escapeHtml(String(value))}</strong>
+                <small>${escapeHtml(label)}</small>
+            </div>
+        </div>
+    `;
+    wrap.innerHTML = `
+        <div class="storage-grid">
+            ${stat('Store-Version', 'v' + (data.version || 0), 'fa-code-commit')}
+            ${stat('SQL aktiv',     data.sql ? 'JA' : 'NEIN', data.sql ? 'fa-database' : 'fa-floppy-disk')}
+            ${stat('Jobs',          data.jobs || 0, 'fa-briefcase')}
+            ${stat('Aktionen',      data.actions || 0, 'fa-bolt')}
+            ${stat('Custom-Aktionen',data.customActions || 0, 'fa-wand-magic-sparkles')}
+            ${stat('NPCs',          data.npcs || 0, 'fa-user-tie')}
+            ${stat('Zonen',         data.zones || 0, 'fa-draw-polygon')}
+            ${stat('Bekannte (SQL)',data.knownPlayers || 0, 'fa-id-card')}
+            ${stat('Letztes Save',  data.lastSave || '—', 'fa-clock')}
+        </div>
+    `;
+}
+
+// ============================================================
+//  HELPER: alle bekannten Aktions-IDs sammeln (Standard + Custom)
+// ============================================================
+
+function collectAllActions() {
+    const out = [];
+    const seen = {};
+    const push = a => {
+        if (!a || !a.id || seen[a.id]) return;
+        seen[a.id] = true;
+        out.push({ id: a.id, label: a.label || a.id });
+    };
+    const acts = (State.snapshot && State.snapshot.actions) || {};
+    Object.keys(acts).forEach(k => push({ id: k, label: acts[k].label || k }));
+    const custom = (State.snapshot && State.snapshot.customActions) || {};
+    Object.keys(custom).forEach(k => push({ id: k, label: custom[k].label || k }));
+    out.sort((a,b) => a.label.localeCompare(b.label));
+    return out;
 }
 
 // ============================================================

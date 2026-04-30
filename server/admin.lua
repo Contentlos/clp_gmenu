@@ -189,6 +189,68 @@ lib.callback.register('clp_gmenu:admin:export', function(src)
 end)
 
 -- ============================================================
+--  BRIDGES (read-only Snapshot der Laufzeit-Registry)
+-- ============================================================
+
+lib.callback.register('clp_gmenu:admin:bridges', function(src)
+    if not Perms.isAdmin(src) then return nil end
+    local Bridge = GMenu.Bridge
+    if not Bridge then
+        return { byTarget = {}, byNpc = {}, byZone = {}, byModel = {} }
+    end
+    local function flatten(map)
+        local out = {}
+        for k, list in pairs(map or {}) do
+            local arr = {}
+            for _, action in pairs(list or {}) do
+                arr[#arr + 1] = {
+                    id     = action.id,
+                    label  = action.label,
+                    icon   = action.icon,
+                    target = action.target,
+                    event  = action.event or action.serverEvent,
+                    source = action.source,
+                }
+            end
+            out[tostring(k)] = arr
+        end
+        return out
+    end
+    return {
+        byTarget = flatten(Bridge.byTarget),
+        byNpc    = flatten(Bridge.byNpc),
+        byZone   = flatten(Bridge.byZone),
+        byModel  = flatten(Bridge.byModel),
+    }
+end)
+
+-- ============================================================
+--  STORAGE-STATUS
+-- ============================================================
+
+lib.callback.register('clp_gmenu:admin:storage', function(src)
+    if not Perms.isAdmin(src) then return nil end
+    local snap = Store.getSnapshot()
+    local sqlOk = (GMenu.SqlStore and GMenu.SqlStore.isAvailable and GMenu.SqlStore.isAvailable()) or false
+    local known = 0
+    if GMenu.Identity and GMenu.Identity.countKnownPairs then
+        known = GMenu.Identity.countKnownPairs() or 0
+    end
+    local lastSave = (Store.getLastSaveTs and Store.getLastSaveTs()) or '—'
+    return {
+        version       = Store.getVersion(),
+        sql           = sqlOk,
+        jobs          = U.tableCount(snap.jobs or {}),
+        actions       = U.tableCount(snap.actions or {}),
+        customActions = U.tableCount(snap.customActions or {}),
+        npcs          = U.tableCount(snap.npcs or {}),
+        zones         = U.tableCount(snap.zones or {}),
+        knownPlayers  = known,
+        lastSave      = lastSave,
+    }
+end)
+
+-- ============================================================
 --  BEFEHL: /gmenuadmin
 -- ============================================================
 

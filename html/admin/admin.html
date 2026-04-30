@@ -42,6 +42,11 @@
                 <button class="tab"        data-tab="custom"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Custom-Actions</span></button>
                 <button class="tab"        data-tab="items"><i class="fa-solid fa-boxes-stacked"></i><span>Items</span></button>
                 <button class="tab"        data-tab="globals"><i class="fa-solid fa-globe"></i><span>Globals</span></button>
+                <button class="tab"        data-tab="npcs"><i class="fa-solid fa-user-tie"></i><span>NPCs</span></button>
+                <button class="tab"        data-tab="zones"><i class="fa-solid fa-draw-polygon"></i><span>Zones</span></button>
+                <button class="tab"        data-tab="bridges"><i class="fa-solid fa-bridge"></i><span>Bridges</span></button>
+                <button class="tab"        data-tab="identity"><i class="fa-solid fa-id-card"></i><span>Identity</span></button>
+                <button class="tab"        data-tab="storage"><i class="fa-solid fa-database"></i><span>Storage</span></button>
                 <button class="tab"        data-tab="audit"><i class="fa-solid fa-clock-rotate-left"></i><span>Audit</span></button>
             </aside>
 
@@ -167,6 +172,76 @@
                         Default-Werte fuer alle Spieler. Einzelne Spieler koennen via /gmenusettings lokal ueberschreiben.
                     </p>
                     <div id="globals-form" class="globals-form"></div>
+                </section>
+
+                <!-- ==================== NPCs TAB ==================== -->
+                <section class="tab-pane" data-pane="npcs">
+                    <div class="panel-header">
+                        <input type="text" class="search-input" id="npcs-search" placeholder="NPCs suchen...">
+                        <button class="btn-primary" id="btn-add-npc"><i class="fa-solid fa-plus"></i> NPC hinzufuegen</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        NPCs werden vom Server zu definierten Koordinaten gespawnt und zeigen je NPC eigene Aktionen.
+                    </p>
+                    <div id="npcs-list" class="npcs-list"></div>
+                </section>
+
+                <!-- ==================== ZONES TAB ==================== -->
+                <section class="tab-pane" data-pane="zones">
+                    <div class="panel-header">
+                        <input type="text" class="search-input" id="zones-search" placeholder="Zonen suchen...">
+                        <button class="btn-primary" id="btn-add-zone"><i class="fa-solid fa-plus"></i> Zone hinzufuegen</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Box/Sphere Zonen. Spieler im Bereich sehen die hier definierten Aktionen.
+                    </p>
+                    <div id="zones-list" class="zones-list"></div>
+                </section>
+
+                <!-- ==================== BRIDGES TAB ==================== -->
+                <section class="tab-pane" data-pane="bridges">
+                    <div class="panel-header">
+                        <h2>Bridge-Aktionen (zur Laufzeit registriert)</h2>
+                        <button class="btn-ghost" id="btn-refresh-bridges"><i class="fa-solid fa-rotate"></i> Aktualisieren</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Aktionen, die andere Resourcen ueber <code>exports.clp_gmenu:registerAction()</code> oder die
+                        ox_target-Bridge eingespielt haben. Read-only — Quelle ist immer die jeweilige Resource.
+                    </p>
+                    <div id="bridges-list" class="bridges-list">
+                        <div class="empty-state"><p>Klick auf <strong>Aktualisieren</strong> um Bridges zu laden.</p></div>
+                    </div>
+                </section>
+
+                <!-- ==================== IDENTITY TAB ==================== -->
+                <section class="tab-pane" data-pane="identity">
+                    <div class="panel-header">
+                        <h2>Identitaet &amp; Handschlag</h2>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Standardlabels fuer unbekannte Spieler und Verhalten beim Hand geben/Visitenkarte. SQL-Tabelle:
+                        <code>clp_gmenu_known_players</code>.
+                    </p>
+                    <div id="identity-form" class="identity-form"></div>
+                </section>
+
+                <!-- ==================== STORAGE TAB ==================== -->
+                <section class="tab-pane" data-pane="storage">
+                    <div class="panel-header">
+                        <h2>Storage-Status</h2>
+                        <button class="btn-ghost" id="btn-refresh-storage"><i class="fa-solid fa-rotate"></i> Aktualisieren</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Live-Status der persistenten Speicherung (SQL/JSON).
+                    </p>
+                    <div id="storage-info" class="storage-info">
+                        <div class="empty-state"><p>L&auml;dt...</p></div>
+                    </div>
                 </section>
 
                 <!-- ==================== AUDIT TAB ==================== -->

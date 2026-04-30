@@ -40,6 +40,7 @@ local U = GMenu.Util
 local data       -- aktueller Store
 local dirty      -- Aenderungen ausstehend
 local saveLock   -- Schreibsperre
+local lastSaveTs -- letzter erfolgreicher Speicherzeitpunkt (Zeit-String)
 local subscribers = {}   -- Callbacks die bei Aenderung benachrichtigt werden
 local debounceTimer = nil  -- Verzoegerungs-Timer fuer persist()
 local DEBOUNCE_MS = 500    -- Verzoegerungs-Intervall fuer Schreibvorgaenge
@@ -216,6 +217,7 @@ local function persist()
     end
 
     dirty = false
+    lastSaveTs = os.date('%Y-%m-%d %H:%M:%S')
     return true
 end
 
@@ -308,6 +310,10 @@ end
 
 function Store.getSnapshot()
     return U.deepCopy(data)
+end
+
+function Store.getLastSaveTs()
+    return lastSaveTs
 end
 
 function Store.getVersion()

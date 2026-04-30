@@ -250,6 +250,16 @@ function Identity.listKnown(src)
     return loadKnown(me)
 end
 
+--- Total relationships persisted in SQL (for admin overview). Returns 0 if SQL not available.
+function Identity.countKnownPairs()
+    if not GMenu.SqlStore or not GMenu.SqlStore.isAvailable or not GMenu.SqlStore.isAvailable() then
+        return 0
+    end
+    local ok, res = pcall(MySQL.scalar.await, 'SELECT COUNT(*) FROM clp_gmenu_known_players')
+    if not ok then return 0 end
+    return tonumber(res or 0) or 0
+end
+
 -- ============================================================
 --  HANDSHAKE PROTOCOL
 -- ============================================================

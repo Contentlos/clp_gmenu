@@ -660,3 +660,123 @@ textarea { min-height: 90px; resize: vertical; font-family: 'JetBrains Mono', mo
     border-top: 1px solid var(--border);
     background: rgba(0,0,0,0.2);
 }
+
+/* ============================================================
+   NPCs / Zones / Bridges / Identity / Storage Tabs
+============================================================ */
+.npcs-list, .zones-list { display: flex; flex-direction: column; gap: 14px; padding: 6px 0; }
+.npc-card, .zone-card {
+    background: var(--bg-strong);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.npc-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.npc-title { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.npc-title .badge { font-size: 10px; padding: 3px 8px; }
+.npc-actions-bar { display: flex; gap: 6px; }
+.npc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.npc-grid label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 11px; color: var(--text-muted);
+}
+.npc-grid input[type="text"], .npc-grid input[type="number"], .npc-grid select {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+.npc-grid input[type="checkbox"] { width: 18px; height: 18px; align-self: flex-start; }
+.npc-actions h4 { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.chip-list {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    align-items: center;
+}
+.chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0,255,180,0.08);
+    border: 1px solid rgba(0,255,180,0.3);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+.chip button {
+    background: none; border: none; color: var(--accent); cursor: pointer;
+    padding: 0; font-size: 10px;
+}
+.chip button:hover { color: var(--danger); }
+.chip-list select {
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+/* Bridges */
+.bridge-section { margin-bottom: 18px; }
+.bridge-section h3 {
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.bridge-block {
+    background: var(--bg-strong);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+.bridge-block-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+.bridge-actions { display: flex; flex-direction: column; gap: 6px; }
+.bridge-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    font-size: 12px;
+}
+.bridge-row i { color: var(--accent); width: 16px; text-align: center; }
+.bridge-meta { display: flex; flex-direction: column; gap: 2px; }
+.bridge-meta small { color: var(--text-muted); font-size: 10px; }
+
+/* Identity */
+.identity-form { max-width: 600px; }
+
+/* Storage */
+.storage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+.storage-stat {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-strong);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.storage-stat i {
+    font-size: 22px;
+    color: var(--accent);
+    width: 32px; text-align: center;
+}
+.storage-stat strong { display: block; font-size: 15px; color: var(--text); }
+.storage-stat small { color: var(--text-muted); font-size: 11px; }
