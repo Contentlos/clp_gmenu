@@ -43,12 +43,21 @@ local function convertOptions(oxOptions)
     for i = 1, #oxOptions do
         local o = oxOptions[i]
         out[i] = {
-            id       = o.name or ('bridge_' .. i .. '_' .. GetGameTimer()),
-            label    = o.label or o.name or 'Aktion',
-            icon     = o.icon or 'fa-circle',
-            onSelect = o.onSelect,
+            id          = o.name or ('bridge_' .. i .. '_' .. GetGameTimer()),
+            label       = o.label or o.name or 'Aktion',
+            icon        = o.icon or 'fa-circle',
+            onSelect    = o.onSelect,
             canInteract = o.canInteract,
-            _bridge  = true,
+            -- ox_target dispatch fields (forwarded to fireOption / Actions.execute)
+            event       = o.event,
+            serverEvent = o.serverEvent,
+            command     = o.command,
+            args        = o.args,
+            payload     = o.payload,
+            distance    = o.distance,
+            groups      = o.groups,
+            items       = o.items,
+            _bridge     = true,
         }
     end
     return out
@@ -361,11 +370,12 @@ exports('addGlobalOption', function(data)
     if type(data) ~= 'table' then return end
     local name = data.name or ('gopt_' .. GetGameTimer())
     local opts = data.options and convertOptions(data.options) or convertOptions(data)
-    local entry = { options = opts, distance = data.distance or 3.0 }
-    B.globals.ped[name]     = entry
-    B.globals.vehicle[name] = entry
-    B.globals.object[name]  = entry
-    B.globals.player[name]  = entry
+    local distance = data.distance or 3.0
+    -- Eigene Wrapper pro Target-Typ (kein geteiltes Table-Reference)
+    B.globals.ped[name]     = { options = opts, distance = distance }
+    B.globals.vehicle[name] = { options = opts, distance = distance }
+    B.globals.object[name]  = { options = opts, distance = distance }
+    B.globals.player[name]  = { options = opts, distance = distance }
     return name
 end)
 

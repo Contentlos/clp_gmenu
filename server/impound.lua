@@ -360,7 +360,7 @@ RegisterCommand('impound', function(src, args)
         return
     end
     -- Spieler-Aufruf: nur Admin oder erlaubter Job
-    if not GMenu.Permissions or not GMenu.Permissions.isAdmin(src) then
+    if not GMenu.Perms or not GMenu.Perms.isAdmin(src) then
         TriggerClientEvent('clp_gmenu:notify', src, { type = 'error', description = 'Keine Berechtigung.' })
         return
     end
