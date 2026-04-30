@@ -257,10 +257,8 @@ function M._finishOpen(target, result, netId)
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
     SendNUIMessage(payload)
-
-    if GMenu.SoundsEnabled() and Config.SoundOnOpen then
-        PlaySoundFrontend(-1, Config.SoundOnOpen.name, Config.SoundOnOpen.lib, true)
-    end
+    -- NUI-Layer (script.js Sound.open()) uebernimmt das Akustik-Feedback,
+    -- damit es ein einheitliches Sounddesign ueber alle Themes gibt.
 end
 
 -- ============================================================
@@ -439,10 +437,7 @@ RegisterNUICallback('select', function(data, cb)
     elseif GMenu.Actions and GMenu.Actions.execute then
         GMenu.Actions.execute(data.id, M.openTarget)
     end
-
-    if GMenu.SoundsEnabled() and Config.SoundOnSelect then
-        PlaySoundFrontend(-1, Config.SoundOnSelect.name, Config.SoundOnSelect.lib, true)
-    end
+    -- Select-Sound wird vom NUI-Layer (script.js Sound.select()) gespielt.
 
     -- Menue automatisch schliessen nach Auswahl
     M.close_()
