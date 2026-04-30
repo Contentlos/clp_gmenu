@@ -51,6 +51,7 @@ local KVP_KEYS = {
     enableSounds = 'clp_gmenu:enableSounds',
     showStats    = 'clp_gmenu:showVehicleStats',
     maxDistance  = 'clp_gmenu:maxDistance',
+    soundPreset  = 'clp_gmenu:soundPreset',
 }
 
 local function loadKvp()
@@ -59,6 +60,7 @@ local function loadKvp()
     s.uiColor      = GetResourceKvpString(KVP_KEYS.uiColor)      or nil
     s.outlineColor = GetResourceKvpString(KVP_KEYS.outlineColor) or nil
     s.markerColor  = GetResourceKvpString(KVP_KEYS.markerColor)  or nil
+    s.soundPreset  = GetResourceKvpString(KVP_KEYS.soundPreset)  or nil
 
     local sound    = GetResourceKvpInt(KVP_KEYS.enableSounds)
     s.enableSounds = sound ~= 0   -- default true
@@ -135,6 +137,14 @@ end
 function GMenu.StatsEnabled()
     if State.settings.showStats ~= nil then return State.settings.showStats end
     return GMenu.GetGlobalBool('showVehicleStats', Config.ShowVehicleStats)
+end
+
+function GMenu.GetSoundPreset()
+    if State.settings.soundPreset and State.settings.soundPreset ~= '' then
+        return State.settings.soundPreset
+    end
+    local g = State.store and State.store.globals or {}
+    return g.soundPreset or Config.DefaultSoundPreset or 'soft'
 end
 
 -- ============================================================

@@ -230,6 +230,9 @@ function M._finishOpen(target, result, netId)
         event  = 'open',
         anchor = (GMenu.State.store and GMenu.State.store.globals and GMenu.State.store.globals.menuAnchor) or Config.MenuAnchor,
         theme  = GMenu.GetTheme(),
+        sounds = GMenu.SoundsEnabled() and true or false,
+        soundPreset = GMenu.GetSoundPreset and GMenu.GetSoundPreset() or 'soft',
+        locale = (Config and Config.Locale) or 'de',
         colors = {
             ui = U.rgbToHex(GMenu.GetColor('ui')),
             outline = U.rgbToHex(GMenu.GetColor('outline')),
@@ -249,17 +252,19 @@ function M._finishOpen(target, result, netId)
     }
 
     M.openTarget = U.deepCopy(payload.target)
-    M.openTarget.entity = target.entity
+    M.openTarget.entity   = target.entity
+    M.openTarget.npcId    = target.npcId
+    M.openTarget.zoneName = target.zoneName
+    M.openTarget.model    = target.model
+    M.openTarget.coords   = target.coords
 
     M.open = true
     M.lastOpenAt = nowMs()
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
     SendNUIMessage(payload)
-
-    if GMenu.SoundsEnabled() and Config.SoundOnOpen then
-        PlaySoundFrontend(-1, Config.SoundOnOpen.name, Config.SoundOnOpen.lib, true)
-    end
+    -- NUI-Layer (script.js Sound.open()) uebernimmt das Akustik-Feedback,
+    -- damit es ein einheitliches Sounddesign ueber alle Themes gibt.
 end
 
 -- ============================================================
@@ -376,9 +381,10 @@ end)
 --  KEYBIND
 -- ============================================================
 
+-- Target-Menue (G): nur wenn ein Ziel da ist; KEIN Fallback auf Self-Menu
 lib.addKeybind({
     name = 'clp_gmenu_open',
-    description = 'Interaktionsmenue oeffnen',
+    description = 'Interaktionsmenue oeffnen (Ziel)',
     defaultKey = Config.OpenKey or 'G',
     defaultMapper = 'keyboard',
     onPressed = function()
@@ -406,16 +412,30 @@ lib.addKeybind({
                     return
                 end
             end
-            -- Kein Target -> Self-Menu oeffnen (falls aktiviert)
-            if not M.open and Config.SelfMenuEnabled then
-                M.openSelf_()
-                return
-            end
-            -- Deny-Sound
+            -- Kein Target gefunden: leiser Deny-Sound (kein Self-Menu hier)
             if not M.open and GMenu.SoundsEnabled() and Config.SoundOnDeny then
                 PlaySoundFrontend(-1, Config.SoundOnDeny.name, Config.SoundOnDeny.lib, true)
             end
         end)
+    end,
+})
+
+-- Self-Menue (J): unabhaengig vom Target, kein Latenz-Fallback
+lib.addKeybind({
+    name = 'clp_gmenu_self',
+    description = 'Self-Menue oeffnen (eigener Charakter)',
+    defaultKey = Config.SelfMenuKey or 'J',
+    defaultMapper = 'keyboard',
+    onPressed = function()
+        if IsPauseMenuActive() then return end
+        if IsNuiFocused() and not M.open then return end
+        if not Config.SelfMenuEnabled then return end
+
+        if M.open then
+            M.close_()
+            return
+        end
+        M.openSelf_()
     end,
 })
 
@@ -438,10 +458,7 @@ RegisterNUICallback('select', function(data, cb)
     elseif GMenu.Actions and GMenu.Actions.execute then
         GMenu.Actions.execute(data.id, M.openTarget)
     end
-
-    if GMenu.SoundsEnabled() and Config.SoundOnSelect then
-        PlaySoundFrontend(-1, Config.SoundOnSelect.name, Config.SoundOnSelect.lib, true)
-    end
+    -- Select-Sound wird vom NUI-Layer (script.js Sound.select()) gespielt.
 
     -- Menue automatisch schliessen nach Auswahl
     M.close_()

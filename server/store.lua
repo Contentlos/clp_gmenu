@@ -102,6 +102,10 @@ local function buildSeed()
             allowAdminLink = true,
             nameplates     = true,
         }),
+
+        -- Phase 7: Admin-Panel-managed Konfigurationen
+        impound = {},
+        themes  = {},
     }
 end
 
@@ -165,6 +169,9 @@ local function normalize(d)
     d.npcs           = d.npcs or {}
     d.zones          = d.zones or {}
     d.identity       = d.identity or { shareJob = false, allowAdminLink = true, nameplates = true }
+    -- Phase 7: Admin-managed Konfigurationen
+    d.impound        = d.impound or {}
+    d.themes         = d.themes  or {}
     return d
 end
 

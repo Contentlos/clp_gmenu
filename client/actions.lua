@@ -27,8 +27,17 @@ function A.execute(actionId, target)
             netId = NetworkGetNetworkIdFromEntity(target.entity)
         end
     end
-    -- Spieler/Fahrzeuge brauchen zwingend eine netId; NPCs + Self duerfen ohne
-    if (not netId or netId == 0) and target.type ~= 'ped' and target.type ~= 'self' then
+    -- Spieler/Fahrzeuge brauchen zwingend eine netId.
+    -- NPCs (ped), Self, Zonen und nicht-vernetzte Objekte/Models duerfen ohne.
+    if (not netId or netId == 0)
+        and target.type ~= 'ped'
+        and target.type ~= 'self'
+        and target.type ~= 'zone'
+        and target.type ~= 'object'
+        and not target.zoneName
+        and not target.npcId
+        and not target.model
+    then
         lib.notify({ type = 'error', description = 'Ziel ist nicht synchronisiert.' })
         return
     end
@@ -47,6 +56,17 @@ function A.execute(actionId, target)
         pedModel  = GetEntityModel(target.entity)
     end
 
+    -- Bridge-Lookup-Hints (NPC/Zone/Model)
+    local zoneName = target.zoneName
+    local npcId    = target.npcId
+    local model    = target.model
+    if not model and target.entity and target.entity ~= 0 then
+        local etype = GetEntityType(target.entity)
+        if etype == 3 or etype == 2 then -- Object oder Vehicle
+            model = GetEntityModel(target.entity)
+        end
+    end
+
     -- Server-Event ausloesen (Server fuehrt ALLE Pruefungen durch)
     TriggerServerEvent('clp_gmenu:executeAction', {
         actionId   = actionId,
@@ -55,6 +75,10 @@ function A.execute(actionId, target)
         extra      = extra,
         pedCoords  = pedCoords,
         pedModel   = pedModel,
+        npcId      = npcId,
+        zoneName   = zoneName,
+        model      = model,
+        coords     = target.coords,
     })
 end
 

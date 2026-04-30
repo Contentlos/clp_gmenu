@@ -78,6 +78,8 @@ server_scripts {
     'server/main.lua',
     'server/jobs/*.lua',           -- Alle Job-Handler automatisch einlesen
     'server/admin.lua',
+    'server/impound.lua',          -- Standalone Abschlepphof-System
+    'server/business_card.lua',    -- ox_inventory Visitenkarten-Item
 }
 
 -- ============================================================
@@ -97,6 +99,8 @@ client_scripts {
     'client/settings.lua',
     'client/admin.lua',
     'client/jobs/*.lua',       -- Alle Job-Handler automatisch einlesen
+    'client/impound.lua',      -- Abschlepphof: Spawn + Pay-Prompt
+    'client/business_card.lua',-- ox_inventory Visitenkarte (Use-Hook)
 }
 
 -- ============================================================

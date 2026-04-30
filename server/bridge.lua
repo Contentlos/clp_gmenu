@@ -134,6 +134,147 @@ function Bridge.getForModel(model)
 end
 
 -- ============================================================
+--  FIND ACTION BY ID (across all bridge tables) -- used by Registry.execute
+-- ============================================================
+
+--- Sucht eine Bridge-Aktion nach ID. Optional ctx mit npcId/zoneName/model
+--- um die Suche einzugrenzen (sonst wird ueber alle Tabellen gesucht).
+function Bridge.findAction(id, ctx)
+    if not id then return nil end
+    ctx = ctx or {}
+
+    -- ctx-spezifische zuerst
+    if ctx.npcId and Bridge.byNpc[ctx.npcId] and Bridge.byNpc[ctx.npcId][id] then
+        return Bridge.byNpc[ctx.npcId][id]
+    end
+    if ctx.zoneName and Bridge.byZone[ctx.zoneName] and Bridge.byZone[ctx.zoneName][id] then
+        return Bridge.byZone[ctx.zoneName][id]
+    end
+    if ctx.model and ctx.model ~= 0 then
+        local hash = type(ctx.model) == 'string' and joaat(ctx.model) or ctx.model
+        if Bridge.byModel[hash] and Bridge.byModel[hash][id] then
+            return Bridge.byModel[hash][id]
+        end
+    end
+
+    -- byTarget durchsuchen (alle Targets)
+    for _, list in pairs(Bridge.byTarget) do
+        if list[id] then return list[id] end
+    end
+
+    -- byNpc / byZone / byModel durchsuchen wenn ctx leer war
+    for _, list in pairs(Bridge.byNpc) do
+        if list[id] then return list[id] end
+    end
+    for _, list in pairs(Bridge.byZone) do
+        if list[id] then return list[id] end
+    end
+    for _, list in pairs(Bridge.byModel) do
+        if list[id] then return list[id] end
+    end
+
+    return nil
+end
+
+-- ============================================================
+--  RE-REGISTRATION HOOK (Drittanbieter-Resourcen, die clp_gmenu nutzen)
+-- ============================================================
+
+-- Subscriber fuer onResourceStart, damit Drittanbieter-Resourcen ihre
+-- Aktionen nach Restart wieder registrieren koennen.
+local rereg = {}
+
+function Bridge.onResourceStart(fn)
+    if type(fn) == 'function' then
+        rereg[#rereg + 1] = fn
+    end
+end
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName == GetCurrentResourceName() then return end
+    -- Kleines Delay damit der Drittanbieter seine Module geladen hat
+    SetTimeout(2000, function()
+        for i = 1, #rereg do
+            local ok, err = pcall(rereg[i], resourceName)
+            if not ok and Config and Config.Debug then
+                print(('^3[clp_gmenu]^0 Bridge.reregister Fehler in %s: %s'):format(resourceName, tostring(err)))
+            end
+        end
+        -- TriggerEvent damit Drittanbieter selbst lauschen koennen ("re-register
+        -- your stuff!"). Empfaenger sollten ihre exports erneut aufrufen.
+        TriggerEvent('clp_gmenu:bridge:reregister', resourceName)
+    end)
+end)
+
+-- Aktionen einer bestimmten Resource entfernen (wenn diese stoppt)
+local function removeByResource(resourceName)
+    if not resourceName then return end
+    local function purge(tbl)
+        for key, list in pairs(tbl) do
+            if type(list) == 'table' then
+                for id, action in pairs(list) do
+                    if action and action._resource == resourceName then
+                        list[id] = nil
+                    end
+                end
+            end
+        end
+    end
+    purge(Bridge.byTarget)
+    purge(Bridge.byNpc)
+    purge(Bridge.byZone)
+    purge(Bridge.byModel)
+end
+
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName == GetCurrentResourceName() then return end
+    removeByResource(resourceName)
+end)
+
+-- Helper: bei Aktions-Registrierung die Source-Resource taggen
+local origRegister = Bridge.registerAction
+function Bridge.registerAction(target, action)
+    local ok, idOrErr = origRegister(target, action)
+    if ok then
+        local invoking = GetInvokingResource() or 'unknown'
+        for _, list in pairs(Bridge.byTarget) do
+            if list[idOrErr] then list[idOrErr]._resource = invoking end
+        end
+    end
+    return ok, idOrErr
+end
+
+local origRegisterNpc = Bridge.registerNpcAction
+function Bridge.registerNpcAction(npcId, action)
+    local ok, idOrErr = origRegisterNpc(npcId, action)
+    if ok and Bridge.byNpc[npcId] and Bridge.byNpc[npcId][idOrErr] then
+        Bridge.byNpc[npcId][idOrErr]._resource = GetInvokingResource() or 'unknown'
+    end
+    return ok, idOrErr
+end
+
+local origRegisterZone = Bridge.registerZoneAction
+function Bridge.registerZoneAction(zoneName, action)
+    local ok, idOrErr = origRegisterZone(zoneName, action)
+    if ok and Bridge.byZone[zoneName] and Bridge.byZone[zoneName][idOrErr] then
+        Bridge.byZone[zoneName][idOrErr]._resource = GetInvokingResource() or 'unknown'
+    end
+    return ok, idOrErr
+end
+
+local origRegisterModel = Bridge.registerModelAction
+function Bridge.registerModelAction(model, action)
+    local ok, idOrErr = origRegisterModel(model, action)
+    if ok then
+        local hash = type(model) == 'string' and joaat(model) or model
+        if Bridge.byModel[hash] and Bridge.byModel[hash][idOrErr] then
+            Bridge.byModel[hash][idOrErr]._resource = GetInvokingResource() or 'unknown'
+        end
+    end
+    return ok, idOrErr
+end
+
+-- ============================================================
 --  EXPORTS (other resources)
 -- ============================================================
 
@@ -153,5 +294,79 @@ RegisterNetEvent('clp_gmenu:bridge:registerAction', function(target, action)
     if source ~= 0 then return end
     Bridge.registerAction(target, action)
 end)
+
+-- ============================================================
+--  STARTUP-ANKUENDIGUNG (D13 — Auto-Re-Register bei clp_gmenu Restart)
+--
+--  Wenn clp_gmenu (re)startet, sollen Drittanbieter-Resourcen ihre
+--  Bridge-Aktionen erneut registrieren. Wir feuern dafuer ein Event an
+--  alle laufenden Resourcen + lassen Drittanbieter eine Konvention
+--  benutzen:
+--      AddEventHandler('clp_gmenu:bridge:ready', function() reregister() end)
+--
+--  Zusaetzlich werden registrierte onResourceStart-Hooks fuer alle
+--  bereits-laufenden Resourcen einmalig aufgerufen, damit clp_gmenu-
+--  interne Module (NPCs, Zones, Identity, Impound, ...) sich selbst
+--  wieder einklinken koennen.
+-- ============================================================
+
+CreateThread(function()
+    -- Kurzer Delay damit andere Resourcen nach clp_gmenu's Start-Tick fertig
+    -- geladen sind und unser Event-Handler greift.
+    Wait(2500)
+
+    -- 1) Internen Hooks-Anker: einmal fuer JEDE laufende Resource feuern,
+    --    damit eingebaute Module (Bridge.onResourceStart) initialisieren.
+    local self = GetCurrentResourceName()
+    local count = GetNumResources()
+    for i = 0, count - 1 do
+        local res = GetResourceByFindIndex(i)
+        if res and res ~= self and GetResourceState(res) == 'started' then
+            for k = 1, #rereg do
+                local ok, err = pcall(rereg[k], res)
+                if not ok and Config and Config.Debug then
+                    print(('^3[clp_gmenu]^0 Bridge.ready replay error in %s: %s'):format(res, tostring(err)))
+                end
+            end
+        end
+    end
+
+    -- 2) Globaler Broadcast — Drittanbieter sollten in ihrem Code haben:
+    --      AddEventHandler('clp_gmenu:bridge:ready', function() ... end)
+    TriggerEvent('clp_gmenu:bridge:ready')
+    if Config and Config.Debug then
+        print('^2[clp_gmenu]^0 Bridge: ready broadcast versendet.')
+    end
+end)
+
+-- Stats fuer Admin Live-View (D14)
+function Bridge.getStats()
+    local function tally(map)
+        local resources, total = {}, 0
+        for _, list in pairs(map or {}) do
+            if type(list) == 'table' then
+                for _, action in pairs(list) do
+                    total = total + 1
+                    local res = (action and action._resource) or 'unknown'
+                    resources[res] = (resources[res] or 0) + 1
+                end
+            end
+        end
+        return total, resources
+    end
+    local tT, rT = tally(Bridge.byTarget)
+    local tN, rN = tally(Bridge.byNpc)
+    local tZ, rZ = tally(Bridge.byZone)
+    local tM, rM = tally(Bridge.byModel)
+    local merged = {}
+    for _, t in ipairs({ rT, rN, rZ, rM }) do
+        for k, v in pairs(t) do merged[k] = (merged[k] or 0) + v end
+    end
+    return {
+        totals    = { byTarget = tT, byNpc = tN, byZone = tZ, byModel = tM,
+                      total = tT + tN + tZ + tM },
+        resources = merged,
+    }
+end
 
 print('^2[clp_gmenu]^0 Bridge (Server) geladen.')
