@@ -27,8 +27,17 @@ function A.execute(actionId, target)
             netId = NetworkGetNetworkIdFromEntity(target.entity)
         end
     end
-    -- Spieler/Fahrzeuge brauchen zwingend eine netId; NPCs + Self duerfen ohne
-    if (not netId or netId == 0) and target.type ~= 'ped' and target.type ~= 'self' then
+    -- Spieler/Fahrzeuge brauchen zwingend eine netId.
+    -- NPCs (ped), Self, Zonen und nicht-vernetzte Objekte/Models duerfen ohne.
+    if (not netId or netId == 0)
+        and target.type ~= 'ped'
+        and target.type ~= 'self'
+        and target.type ~= 'zone'
+        and target.type ~= 'object'
+        and not target.zoneName
+        and not target.npcId
+        and not target.model
+    then
         lib.notify({ type = 'error', description = 'Ziel ist nicht synchronisiert.' })
         return
     end
