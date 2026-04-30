@@ -252,6 +252,37 @@ local function getMoney(xPlayer, account)
     end
 end
 
+-- Server-seitiger Abstands-Check zum Hof. Verhindert Remote-Exploits wo
+-- ein Client das Event von ueberall ausloest. Toleranz = InteractDistance * 3
+-- (mit min 12m), weil der Server Position teils stale ist und der Client
+-- ohnehin nur innerhalb InteractDistance interagieren kann.
+local function isPlayerNearLot(src, lotId)
+    if not src or src == 0 then return false end
+    local lot = Config.Impound.Lots[lotId]
+    if not lot then return false end
+
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return false end
+    local p = GetEntityCoords(ped)
+
+    local tol = math.max(12.0, (Config.Impound.InteractDistance or 3.5) * 3.0)
+    local function near(x, y, z)
+        local dx, dy, dz = p.x - x, p.y - y, p.z - z
+        return (dx*dx + dy*dy + dz*dz) <= (tol * tol)
+    end
+
+    if lot.payCoords and near(lot.payCoords.x, lot.payCoords.y, lot.payCoords.z) then
+        return true
+    end
+    if lot.slots then
+        for i = 1, #lot.slots do
+            local s = lot.slots[i].coords
+            if s and near(s.x, s.y, s.z) then return true end
+        end
+    end
+    return false
+end
+
 local function takeMoney(xPlayer, account, amount)
     if not xPlayer then return false end
     if account == 'bank' then
@@ -282,6 +313,15 @@ RegisterNetEvent('clp_gmenu:impound:requestRelease', function(plate)
     local entry = impounded[plate]
     if not entry then
         TriggerClientEvent('clp_gmenu:notify', src, { type = 'error', description = 'Dieses Fahrzeug ist nicht beschlagnahmt.' })
+        return
+    end
+
+    -- Anti-Exploit: Spieler muss tatsaechlich am Hof stehen.
+    if not isPlayerNearLot(src, entry.lotId) then
+        if GMenu.Perms and GMenu.Perms.audit then
+            GMenu.Perms.audit(src, 'impound_remote_release_attempt', { plate = plate, lotId = entry.lotId })
+        end
+        TriggerClientEvent('clp_gmenu:notify', src, { type = 'error', description = 'Du bist nicht am Abschlepphof.' })
         return
     end
 
@@ -322,6 +362,31 @@ RegisterNetEvent('clp_gmenu:impound:store', function(plate, lotId)
     local src = source
     if type(plate) ~= 'string' then return end
     plate = plate:gsub('%s+', ''):upper()
+
+    lotId = lotId or Config.Impound.DefaultLot
+
+    -- Anti-Exploit: Spieler muss am Hof stehen UND idealerweise ein Fahrzeug
+    -- mit dieser Plate in der Naehe haben.
+    if not isPlayerNearLot(src, lotId) then
+        if GMenu.Perms and GMenu.Perms.audit then
+            GMenu.Perms.audit(src, 'impound_remote_store_attempt', { plate = plate, lotId = lotId })
+        end
+        TriggerClientEvent('clp_gmenu:notify', src, { type = 'error', description = 'Du bist nicht am Abschlepphof.' })
+        return
+    end
+
+    -- Plate-Vehicle-Match: das Fahrzeug muss in Spielernaehe existieren.
+    local ped = GetPlayerPed(src)
+    local pedVeh = ped and ped ~= 0 and GetVehiclePedIsIn(ped, false) or 0
+    local hasMatch = false
+    if pedVeh and pedVeh ~= 0 then
+        local vp = GetVehicleNumberPlateText(pedVeh) or ''
+        if vp:gsub('%s+', ''):upper() == plate then hasMatch = true end
+    end
+    if not hasMatch then
+        TriggerClientEvent('clp_gmenu:notify', src, { type = 'error', description = 'Du sitzt nicht in dem Fahrzeug.' })
+        return
+    end
 
     local ok, lot = Imp.add({
         plate  = plate,

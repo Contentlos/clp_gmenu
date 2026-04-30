@@ -303,9 +303,16 @@ function Registry.execute(src, payload)
         target = resolveTarget(payload)
         -- Entity muss existieren ODER es ist ein Ped mit Fallback-Koordinaten
         -- ODER ein Zone/Objekt-Target (entity-frei zulaessig).
-        local needsEntity = not (target.type == 'zone'
-                              or (target.type == 'object' and target.entity ~= 0)
-                              or target._pedCoords)
+        -- ODER ein Bridge-Target mit npcId/model-Hint (z.B. registerModelAction
+        -- auf nicht-vernetztes Objekt).
+        local needsEntity = not (
+            target.type == 'zone'
+            or target.type == 'object'
+            or target._pedCoords
+            or (target.npcId and target.npcId ~= 0)
+            or (target.model and target.model ~= 0)
+            or target.zoneName
+        )
         if needsEntity and (not target.entity or target.entity == 0) then
             return false, 'Ziel nicht aufloesbar'
         end
