@@ -51,6 +51,7 @@ end)
 
 local function clampFee(fee)
     fee = tonumber(fee) or Config.Impound.DefaultFee
+    if fee <= 0 then return 0 end   -- 0 = explizit kostenlos (z.B. self_store)
     if fee < Config.Impound.MinFee then fee = Config.Impound.MinFee end
     if fee > Config.Impound.MaxFee then fee = Config.Impound.MaxFee end
     return math.floor(fee)
@@ -162,10 +163,17 @@ function Imp.add(opts)
 
     if impounded[plate] then return false, impounded[plate].lotId end
 
-    -- Schutz vor Double-Impound nach Release
-    if recentReleases[plate] and (os.time() - recentReleases[plate]) < (Config.Impound.ReleaseTimeoutSec or 600) then
+    -- Schutz vor Double-Impound nach Release. self_store darf bypassen,
+    -- weil der Spieler nach dem Auskaufen das Fahrzeug bewusst wieder
+    -- selbst einlagern moechte.
+    if opts.reason ~= 'self_store'
+        and recentReleases[plate]
+        and (os.time() - recentReleases[plate]) < (Config.Impound.ReleaseTimeoutSec or 600)
+    then
         return false, nil
     end
+    -- Beim self_store den Cooldown ohnehin clearen.
+    if opts.reason == 'self_store' then recentReleases[plate] = nil end
 
     local lot, lotId = getLot(opts.lotId)
     if not lot then return false, nil end
