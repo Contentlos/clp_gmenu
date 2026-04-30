@@ -875,7 +875,7 @@ function renderGlobals() {
         <div class="form-row">
             <label>Default-Theme</label>
             <select id="g-theme">
-                ${['glass','dark','neon','redcircle'].map(t => `<option value="${t}" ${g.defaultTheme === t ? 'selected' : ''}>${t}</option>`).join('')}
+                ${['glass','dark','neon','redcircle','minimal','custom'].map(t => `<option value="${t}" ${g.defaultTheme === t ? 'selected' : ''}>${t}</option>`).join('')}
             </select>
         </div>
         <div class="form-row">

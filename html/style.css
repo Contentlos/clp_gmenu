@@ -74,6 +74,14 @@ button { font-family: inherit; color: inherit; outline: none; }
     --border:      rgba(255, 255, 255, 0.10);
 }
 
+/* "custom" - alle Farben kommen live ueber CSS Variablen aus den Globals/Settings */
+[data-theme="custom"] {
+    --bg-1:        rgba(12, 14, 18, 0.55);
+    --bg-2:        rgba(20, 24, 32, 0.78);
+    --bg-3:        rgba(28, 32, 42, 0.92);
+    --border:      rgba(var(--accent-rgb), 0.18);
+}
+
 /* ============================================================
    HEXAGON CLIP-PATH (flat-top "ribbon" Hexagon)
 ============================================================ */

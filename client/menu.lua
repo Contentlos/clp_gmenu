@@ -230,6 +230,7 @@ function M._finishOpen(target, result, netId)
         event  = 'open',
         anchor = (GMenu.State.store and GMenu.State.store.globals and GMenu.State.store.globals.menuAnchor) or Config.MenuAnchor,
         theme  = GMenu.GetTheme(),
+        sounds = GMenu.SoundsEnabled() and true or false,
         colors = {
             ui = U.rgbToHex(GMenu.GetColor('ui')),
             outline = U.rgbToHex(GMenu.GetColor('outline')),

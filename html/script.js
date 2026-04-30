@@ -40,6 +40,51 @@ const Settings = {
     visible: false,
 };
 
+// ============================================================
+//  SUBTILE SOUNDS (WebAudio - keine Asset-Files noetig)
+// ============================================================
+const Sound = {
+    enabled: true,
+    ctx: null,
+    _ensure() {
+        if (!this.enabled) return null;
+        if (!this.ctx) {
+            try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (_) { return null; }
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+        return this.ctx;
+    },
+    /**
+     * @param {Object} o {f, dur, type, gain, slideTo, attack, release}
+     */
+    play(o) {
+        const ctx = this._ensure();
+        if (!ctx) return;
+        const t0 = ctx.currentTime;
+        const dur = o.dur || 0.08;
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type = o.type || 'sine';
+        osc.frequency.setValueAtTime(o.f, t0);
+        if (o.slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(o.slideTo, t0 + dur);
+        }
+        const peak = (o.gain == null ? 0.05 : o.gain);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(peak, t0 + (o.attack || 0.005));
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.02);
+    },
+    open()   { this.play({ f: 660, slideTo: 880, dur: 0.14, type: 'sine',     gain: 0.045 }); },
+    close()  { this.play({ f: 660, slideTo: 330, dur: 0.12, type: 'sine',     gain: 0.04  }); },
+    hover()  { this.play({ f: 1100,               dur: 0.05, type: 'triangle', gain: 0.018 }); },
+    select() { this.play({ f: 880, slideTo: 1320, dur: 0.10, type: 'sine',     gain: 0.06  }); },
+    notify() { this.play({ f: 740, slideTo: 980,  dur: 0.16, type: 'triangle', gain: 0.05  }); },
+};
+
 const Colors = {
     ui:      '#00FFB4',
     outline: '#FF3232',
@@ -192,6 +237,7 @@ function openMenu(payload) {
     Menu.target  = payload.target  || null;
     Menu.options = payload.options || [];
 
+    if (typeof payload.sounds === 'boolean') Sound.enabled = payload.sounds;
     setTheme(payload.theme, payload.colors, payload.anchor);
     renderHeader(Menu.target);
     renderStats(payload.stats);
@@ -201,6 +247,7 @@ function openMenu(payload) {
     DOM.menuRoot.classList.remove('hidden');
     requestAnimationFrame(() => DOM.menuRoot.classList.add('visible'));
     Menu.visible = true;
+    Sound.open();
 }
 
 function closeMenu() {
@@ -208,6 +255,7 @@ function closeMenu() {
     DOM.menuRoot.classList.remove('visible');
     setTimeout(() => DOM.menuRoot.classList.add('hidden'), 220);
     Menu.visible = false;
+    Sound.close();
 }
 
 // ============================================================
@@ -361,6 +409,7 @@ function renderOptions(options) {
         hex._key.style.display = idx < 9 ? '' : 'none';
         // Event-Listener: einmal setzen via dataset (kein Lambda-Leak)
         hex.onclick = () => selectOption(opt.id);
+        hex.onmouseenter = () => Sound.hover();
         frag.appendChild(hex);
     });
     wrap.appendChild(frag);  // Ein einziger Reflow
@@ -388,6 +437,7 @@ function renderFooter(job) {
 // ============================================================
 
 function selectOption(id) {
+    Sound.select();
     postLua('select', { id });
 }
 
@@ -434,7 +484,7 @@ function wireColorQuick() {
 //  EINSTELLUNGEN (Vollansicht)
 // ============================================================
 
-const THEMES = ['glass', 'dark', 'neon', 'redcircle'];
+const THEMES = ['glass', 'dark', 'neon', 'redcircle', 'minimal', 'custom'];
 
 function openSettings(data) {
     DOM.settingsOverlay.classList.remove('hidden');
@@ -466,6 +516,7 @@ function openSettings(data) {
     $('color-marker-hex').textContent  = (data.markerColor  || Colors.marker).toUpperCase();
 
     $('opt-sounds').checked = data.enableSounds !== false;
+    Sound.enabled           = data.enableSounds !== false;
     $('opt-stats').checked  = data.showVehicleStats !== false;
 
     $('slider-distance').value           = data.maxDistance || 9;
@@ -510,6 +561,7 @@ function gatherSettings() {
 
 function saveSettings() {
     const data = gatherSettings();
+    Sound.enabled = !!data.enableSounds;
     postLua('saveSettings', data);
     // Sofort lokal anwenden fuer schnelles Feedback
     applyAccent(data.uiColor);

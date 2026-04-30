@@ -74,8 +74,8 @@ Config.SoundOnDeny   = { lib = 'HUD_FRONTEND_DEFAULT_SOUNDSET', name = 'ERROR' }
 -- ============================================================
 --  UI-DEFAULTS
 -- ============================================================
-Config.DefaultTheme    = 'glass'                                       -- glass|dark|neon|redcircle|minimal
-Config.AvailableThemes = { 'glass', 'dark', 'neon', 'redcircle', 'minimal' }
+Config.DefaultTheme    = 'glass'                                       -- glass|dark|neon|redcircle|minimal|custom
+Config.AvailableThemes = { 'glass', 'dark', 'neon', 'redcircle', 'minimal', 'custom' }
 Config.MenuAnchor      = 'right'                                       -- right|center|bottom
 Config.ShowVehicleStats = true                                         -- Header zeigt HP/Speed/Plate
 
