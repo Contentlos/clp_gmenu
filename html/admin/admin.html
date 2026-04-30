@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>clp_gmenu Admin Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div id="admin-root">
+        <!-- HEADER -->
+        <header id="admin-header">
+            <div class="header-brand">
+                <div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div>
+                    <h1>clp_gmenu Admin Editor</h1>
+                    <p>Jobs, Permissions, Aktionen — komplett ingame</p>
+                </div>
+            </div>
+
+            <div class="header-status">
+                <span class="status-pill" id="status-version">v0</span>
+                <span class="status-pill ok" id="status-saved"><i class="fa-solid fa-cloud-check"></i> Sync OK</span>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-ghost" id="btn-export"><i class="fa-solid fa-file-export"></i> Export</button>
+                <input type="file" id="import-file" accept="application/json" hidden>
+                <button class="btn-ghost" id="btn-import"><i class="fa-solid fa-file-import"></i> Import</button>
+                <button class="btn-danger" id="btn-reset"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                <button class="btn-close" id="btn-close-admin"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </header>
+
+        <!-- BODY: Sidebar (Tabs) + Main -->
+        <div id="admin-body">
+            <!-- Tabs -->
+            <aside id="admin-tabs">
+                <button class="tab active" data-tab="jobs"><i class="fa-solid fa-briefcase"></i><span>Jobs</span></button>
+                <button class="tab"        data-tab="actions"><i class="fa-solid fa-bolt"></i><span>Aktionen</span></button>
+                <button class="tab"        data-tab="custom"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Custom-Actions</span></button>
+                <button class="tab"        data-tab="items"><i class="fa-solid fa-boxes-stacked"></i><span>Items</span></button>
+                <button class="tab"        data-tab="globals"><i class="fa-solid fa-globe"></i><span>Globals</span></button>
+                <button class="tab"        data-tab="audit"><i class="fa-solid fa-clock-rotate-left"></i><span>Audit</span></button>
+            </aside>
+
+            <!-- Main content -->
+            <main id="admin-main">
+
+                <!-- ==================== JOBS TAB ==================== -->
+                <section class="tab-pane active" data-pane="jobs">
+                    <div class="split">
+                        <!-- Linke Spalte: Jobs-Liste -->
+                        <div class="split-left">
+                            <div class="panel-header">
+                                <input type="text" class="search-input" id="jobs-search" placeholder="Jobs suchen...">
+                                <button class="btn-primary" id="btn-add-job"><i class="fa-solid fa-plus"></i> Job hinzufuegen</button>
+                            </div>
+                            <div class="job-list" id="job-list"></div>
+                        </div>
+
+                        <!-- Rechte Spalte: Job-Detail -->
+                        <div class="split-right" id="job-detail">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <h3>Job auswaehlen</h3>
+                                <p>Waehle links einen Job zur Bearbeitung oder erstelle einen neuen.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== ACTIONS TAB ==================== -->
+                <section class="tab-pane" data-pane="actions">
+                    <div class="panel-header">
+                        <input type="text" class="search-input" id="actions-search" placeholder="Aktionen suchen...">
+                        <div class="filter-group">
+                            <button class="filter active" data-filter="all">Alle</button>
+                            <button class="filter" data-filter="player">Personen</button>
+                            <button class="filter" data-filter="vehicle">Fahrzeuge</button>
+                            <button class="filter" data-filter="both">Beide</button>
+                        </div>
+                    </div>
+                    <div class="actions-grid" id="actions-grid"></div>
+                </section>
+
+                <!-- ==================== CUSTOM TAB ==================== -->
+                <section class="tab-pane" data-pane="custom">
+                    <div class="panel-header">
+                        <h2>Custom-Actions</h2>
+                        <button class="btn-primary" id="btn-add-custom"><i class="fa-solid fa-plus"></i> Neue Custom-Action</button>
+                    </div>
+                    <div id="custom-list" class="actions-grid"></div>
+
+                    <div id="custom-modal" class="modal hidden">
+                        <div class="modal-card">
+                            <header class="modal-header">
+                                <h3 id="custom-modal-title">Custom-Action</h3>
+                                <button class="btn-ghost" id="custom-modal-close"><i class="fa-solid fa-xmark"></i></button>
+                            </header>
+                            <div class="modal-body">
+                                <div class="form-row">
+                                    <label>ID (snake_case)</label>
+                                    <input type="text" id="custom-id" placeholder="my_custom_action" pattern="[a-z][a-z0-9_]*">
+                                </div>
+                                <div class="form-row">
+                                    <label>Anzeige-Label</label>
+                                    <input type="text" id="custom-label" placeholder="Begruessen">
+                                </div>
+                                <div class="form-row">
+                                    <label>Icon (FontAwesome ohne 'fa-')</label>
+                                    <input type="text" id="custom-icon" placeholder="fa-hand">
+                                </div>
+                                <div class="form-row">
+                                    <label>Target-Type</label>
+                                    <select id="custom-target">
+                                        <option value="player">Person</option>
+                                        <option value="vehicle">Fahrzeug</option>
+                                        <option value="both">Beide</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Aktions-Typ</label>
+                                    <select id="custom-type">
+                                        <option value="notify">Notify (Text anzeigen)</option>
+                                        <option value="event">Client-Event triggern</option>
+                                        <option value="serverEvent">Server-Event triggern</option>
+                                        <option value="command">Server-Command ausfuehren</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Payload</label>
+                                    <textarea id="custom-payload" placeholder="Bei Notify: Text. Bei Event: Event-Name. Bei Command: 'me hallo'."></textarea>
+                                    <small id="custom-hint" class="hint"></small>
+                                </div>
+                            </div>
+                            <footer class="modal-footer">
+                                <button class="btn-ghost" id="custom-cancel">Abbrechen</button>
+                                <button class="btn-primary" id="custom-save"><i class="fa-solid fa-check"></i> Speichern</button>
+                            </footer>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== ITEMS TAB ==================== -->
+                <section class="tab-pane" data-pane="items">
+                    <div class="panel-header">
+                        <h2>Item-Mappings (ox_inventory)</h2>
+                        <button class="btn-primary" id="btn-add-item"><i class="fa-solid fa-plus"></i> Neues Mapping</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Hier legst du fest, welche Items im Spiel mit welchen Schluesseln verknuepft sind.
+                        Z.B. <code>bandage</code> → <code>medkit_basic</code>.
+                    </p>
+                    <div id="items-list" class="items-list"></div>
+                </section>
+
+                <!-- ==================== GLOBALS TAB ==================== -->
+                <section class="tab-pane" data-pane="globals">
+                    <div class="panel-header">
+                        <h2>Globale Einstellungen (server-weit)</h2>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Default-Werte fuer alle Spieler. Einzelne Spieler koennen via /gmenusettings lokal ueberschreiben.
+                    </p>
+                    <div id="globals-form" class="globals-form"></div>
+                </section>
+
+                <!-- ==================== AUDIT TAB ==================== -->
+                <section class="tab-pane" data-pane="audit">
+                    <div class="panel-header">
+                        <h2>Audit-Log</h2>
+                        <button class="btn-ghost" id="btn-refresh-audit"><i class="fa-solid fa-rotate"></i> Aktualisieren</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Letzte Aenderungen. Auch in <code>data/admin_audit.json</code> persistent gespeichert.
+                    </p>
+                    <div id="audit-list" class="audit-list"></div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="admin.js?v=1.0.0"></script>
+</body>
+</html>

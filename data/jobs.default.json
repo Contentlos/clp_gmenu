@@ -1,0 +1,759 @@
+{
+    "customActions": [],
+    "_version": 1,
+    "items": {
+        "tirekit": "tirekit",
+        "extinguisher": "fire_extinguisher",
+        "bandage": "bandage",
+        "cuffs": "handcuffs",
+        "medikit": "medikit",
+        "lockpick": "lockpick",
+        "repairkit": "repairkit"
+    },
+    "actions": {
+        "generic_notify": {
+            "target": "both",
+            "icon": "fa-message",
+            "label": "Notify senden",
+            "handler": "generic_notify"
+        },
+        "fire_extinguish": {
+            "target": "vehicle",
+            "permission": "canExtinguish",
+            "icon": "fa-fire-extinguisher",
+            "label": "Loeschen",
+            "handler": "fire_extinguish"
+        },
+        "generic_command": {
+            "target": "both",
+            "permission": "canRunCommand",
+            "icon": "fa-terminal",
+            "label": "Command",
+            "handler": "generic_command"
+        },
+        "mech_tune": {
+            "target": "vehicle",
+            "permission": "canTune",
+            "icon": "fa-sliders",
+            "label": "Tuning oeffnen",
+            "handler": "mech_tune"
+        },
+        "mech_tires": {
+            "target": "vehicle",
+            "permission": "canFixTires",
+            "icon": "fa-circle-notch",
+            "label": "Reifen flicken",
+            "handler": "mech_tires"
+        },
+        "tow_attach": {
+            "target": "vehicle",
+            "permission": "canTow",
+            "icon": "fa-truck-arrow-right",
+            "label": "Aufladen",
+            "handler": "tow_attach"
+        },
+        "civ_trade": {
+            "target": "player",
+            "permission": "canTrade",
+            "icon": "fa-arrow-right-arrow-left",
+            "label": "Handel anbieten",
+            "handler": "civ_trade"
+        },
+        "pd_drag": {
+            "target": "player",
+            "permission": "canCuff",
+            "icon": "fa-people-pulling",
+            "label": "Mitnehmen",
+            "handler": "pd_drag"
+        },
+        "pd_check_id": {
+            "target": "player",
+            "permission": "canCheckId",
+            "icon": "fa-id-card",
+            "label": "Ausweis pruefen",
+            "handler": "pd_check_id"
+        },
+        "rc_finance": {
+            "target": "player",
+            "permission": "canFinance",
+            "icon": "fa-coins",
+            "label": "Finanzen",
+            "handler": "rc_finance"
+        },
+        "rc_hire": {
+            "target": "player",
+            "permission": "canHire",
+            "icon": "fa-user-plus",
+            "label": "Einstellen",
+            "handler": "rc_hire"
+        },
+        "fire_rescue": {
+            "target": "vehicle",
+            "permission": "canRescue",
+            "icon": "fa-person-falling-burst",
+            "label": "Aus Auto bergen",
+            "handler": "fire_rescue"
+        },
+        "civ_help_up": {
+            "target": "player",
+            "icon": "fa-hands-holding",
+            "label": "Aufhelfen",
+            "handler": "civ_help_up"
+        },
+        "rc_escort": {
+            "target": "player",
+            "permission": "canEscort",
+            "icon": "fa-person-walking-arrow-right",
+            "label": "Hinausbegleiten",
+            "handler": "rc_escort"
+        },
+        "pd_search": {
+            "target": "player",
+            "permission": "canSearch",
+            "icon": "fa-magnifying-glass",
+            "label": "Durchsuchen",
+            "handler": "pd_search"
+        },
+        "generic_event": {
+            "target": "both",
+            "icon": "fa-bolt",
+            "label": "Event Trigger",
+            "handler": "generic_event"
+        },
+        "tow_detach": {
+            "target": "vehicle",
+            "permission": "canDetach",
+            "icon": "fa-truck-fast",
+            "label": "Abladen",
+            "handler": "tow_detach"
+        },
+        "rc_fire": {
+            "target": "player",
+            "permission": "canFire",
+            "icon": "fa-user-minus",
+            "label": "Kuendigen",
+            "handler": "rc_fire"
+        },
+        "ems_heal": {
+            "target": "player",
+            "permission": "canHeal",
+            "icon": "fa-kit-medical",
+            "label": "Behandeln",
+            "handler": "ems_heal"
+        },
+        "rc_promote": {
+            "target": "player",
+            "permission": "canPromote",
+            "icon": "fa-arrow-up",
+            "label": "Befoerdern",
+            "handler": "rc_promote"
+        },
+        "civ_check_plate": {
+            "target": "vehicle",
+            "icon": "fa-eye",
+            "label": "Kennzeichen lesen",
+            "handler": "civ_check_plate"
+        },
+        "taxi_offer": {
+            "target": "player",
+            "permission": "canOfferRide",
+            "icon": "fa-taxi",
+            "label": "Taxi anbieten",
+            "handler": "taxi_offer"
+        },
+        "rc_request_ride": {
+            "target": "vehicle",
+            "permission": "canRequestRide",
+            "icon": "fa-car",
+            "label": "Limo anfordern",
+            "handler": "rc_request_ride"
+        },
+        "pd_cuff": {
+            "target": "player",
+            "permission": "canCuff",
+            "icon": "fa-handcuffs",
+            "label": "Festnehmen",
+            "handler": "pd_cuff"
+        },
+        "ems_vitals": {
+            "target": "player",
+            "permission": "canCheckVitals",
+            "icon": "fa-heart-pulse",
+            "label": "Vitalwerte pruefen",
+            "handler": "ems_vitals"
+        },
+        "rc_search": {
+            "target": "player",
+            "permission": "canSearch",
+            "icon": "fa-hand",
+            "label": "Person abtasten",
+            "handler": "rc_search"
+        },
+        "mech_refuel": {
+            "target": "vehicle",
+            "permission": "canRefuel",
+            "icon": "fa-gas-pump",
+            "label": "Auftanken",
+            "handler": "mech_refuel"
+        },
+        "rc_serve_drink": {
+            "target": "player",
+            "permission": "canServeDrink",
+            "icon": "fa-martini-glass",
+            "label": "Drink servieren",
+            "handler": "rc_serve_drink"
+        },
+        "fire_first_aid": {
+            "target": "player",
+            "permission": "canFirstAid",
+            "icon": "fa-hand-holding-medical",
+            "label": "Erste Hilfe",
+            "handler": "fire_first_aid"
+        },
+        "pd_check_plate": {
+            "target": "vehicle",
+            "permission": "canCheckId",
+            "icon": "fa-clipboard-list",
+            "label": "Kennzeichen pruefen",
+            "handler": "pd_check_plate"
+        },
+        "pd_break_lock": {
+            "target": "vehicle",
+            "permission": "canBreakLock",
+            "icon": "fa-unlock",
+            "label": "Schloss aufbrechen",
+            "handler": "pd_break_lock"
+        },
+        "pd_search_vehicle": {
+            "target": "vehicle",
+            "permission": "canSearch",
+            "icon": "fa-magnifying-glass",
+            "label": "Fahrzeug durchsuchen",
+            "handler": "pd_search_vehicle"
+        },
+        "mech_repair_light": {
+            "target": "vehicle",
+            "permission": "canRepair",
+            "icon": "fa-screwdriver",
+            "label": "Leichte Reparatur",
+            "handler": "mech_repair_light"
+        },
+        "ems_transport": {
+            "target": "player",
+            "permission": "canTransport",
+            "icon": "fa-truck-medical",
+            "label": "Transport rufen",
+            "handler": "ems_transport"
+        },
+        "fire_rescue_ped": {
+            "target": "player",
+            "permission": "canRescue",
+            "icon": "fa-person-walking-arrow-right",
+            "label": "Person bergen",
+            "handler": "fire_rescue_ped"
+        },
+        "ems_revive": {
+            "target": "player",
+            "permission": "canRevive",
+            "icon": "fa-heart-circle-bolt",
+            "label": "Wiederbeleben",
+            "handler": "ems_revive"
+        },
+        "pd_impound": {
+            "target": "vehicle",
+            "permission": "canImpound",
+            "icon": "fa-truck-ramp-box",
+            "label": "Beschlagnahmen",
+            "handler": "pd_impound"
+        },
+        "civ_handshake": {
+            "target": "player",
+            "icon": "fa-handshake",
+            "label": "Hand schuetteln",
+            "handler": "civ_handshake"
+        },
+        "mech_repair": {
+            "target": "vehicle",
+            "permission": "canRepair",
+            "icon": "fa-wrench",
+            "label": "Voll reparieren",
+            "handler": "mech_repair"
+        }
+    },
+    "_lastModified": "2026-04-29T14:38:43Z",
+    "_lastModifiedBy": "system:seed",
+    "jobs": {
+        "mechanic": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canRepair": true,
+                        "canFixTires": true
+                    },
+                    "label": "Lehrling",
+                    "actions": {
+                        "player": [],
+                        "vehicle": [
+                            "mech_repair_light",
+                            "mech_tires"
+                        ]
+                    }
+                },
+                "2": {
+                    "permissions": {
+                        "canRepair": true,
+                        "canFixTires": true,
+                        "canTune": true,
+                        "canRefuel": true
+                    },
+                    "label": "Meister",
+                    "actions": {
+                        "player": [],
+                        "vehicle": [
+                            "mech_repair",
+                            "mech_tires",
+                            "mech_tune",
+                            "mech_refuel"
+                        ]
+                    }
+                },
+                "1": {
+                    "permissions": {
+                        "canFixTires": true,
+                        "canTune": true,
+                        "canRepair": true
+                    },
+                    "label": "Mechaniker",
+                    "actions": {
+                        "player": [],
+                        "vehicle": [
+                            "mech_repair",
+                            "mech_tires",
+                            "mech_tune"
+                        ]
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#F59E0B",
+            "icon": "fa-wrench",
+            "label": "Mechaniker"
+        },
+        "taxi": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canOfferRide": true
+                    },
+                    "label": "Taxifahrer",
+                    "actions": {
+                        "player": [
+                            "taxi_offer"
+                        ],
+                        "vehicle": []
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#FACC15",
+            "icon": "fa-taxi",
+            "label": "Taxi"
+        },
+        "police": {
+            "ranks": {
+                "4": {
+                    "permissions": {
+                        "canImpound": true,
+                        "canCheckId": true,
+                        "canSearch": true,
+                        "canBreakLock": true,
+                        "canCuff": true
+                    },
+                    "label": "Chief",
+                    "actions": {
+                        "player": [
+                            "pd_check_id",
+                            "pd_search",
+                            "pd_cuff",
+                            "pd_drag"
+                        ],
+                        "vehicle": [
+                            "pd_check_plate",
+                            "pd_search_vehicle",
+                            "pd_impound",
+                            "pd_break_lock"
+                        ]
+                    }
+                },
+                "3": {
+                    "permissions": {
+                        "canImpound": true,
+                        "canCheckId": true,
+                        "canSearch": true,
+                        "canBreakLock": true,
+                        "canCuff": true
+                    },
+                    "label": "Lieutenant",
+                    "actions": {
+                        "player": [
+                            "pd_check_id",
+                            "pd_search",
+                            "pd_cuff",
+                            "pd_drag"
+                        ],
+                        "vehicle": [
+                            "pd_check_plate",
+                            "pd_search_vehicle",
+                            "pd_impound",
+                            "pd_break_lock"
+                        ]
+                    }
+                },
+                "2": {
+                    "permissions": {
+                        "canCuff": true,
+                        "canCheckId": true,
+                        "canSearch": true,
+                        "canImpound": true
+                    },
+                    "label": "Sergeant",
+                    "actions": {
+                        "player": [
+                            "pd_check_id",
+                            "pd_search",
+                            "pd_cuff",
+                            "pd_drag"
+                        ],
+                        "vehicle": [
+                            "pd_check_plate",
+                            "pd_search_vehicle",
+                            "pd_impound",
+                            "pd_break_lock"
+                        ]
+                    }
+                },
+                "1": {
+                    "permissions": {
+                        "canSearch": true,
+                        "canCheckId": true,
+                        "canCuff": true
+                    },
+                    "label": "Officer",
+                    "actions": {
+                        "player": [
+                            "pd_check_id",
+                            "pd_search",
+                            "pd_cuff",
+                            "pd_drag"
+                        ],
+                        "vehicle": [
+                            "pd_check_plate",
+                            "pd_search_vehicle"
+                        ]
+                    }
+                },
+                "0": {
+                    "permissions": {
+                        "canCheckId": true
+                    },
+                    "label": "Anwaerter",
+                    "actions": {
+                        "player": [
+                            "pd_check_id"
+                        ],
+                        "vehicle": [
+                            "pd_check_plate"
+                        ]
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#3B82F6",
+            "icon": "fa-shield",
+            "label": "Polizei"
+        },
+        "tow": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canDetach": true,
+                        "canTow": true
+                    },
+                    "label": "Fahrer",
+                    "actions": {
+                        "player": [],
+                        "vehicle": [
+                            "tow_attach",
+                            "tow_detach"
+                        ]
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#EAB308",
+            "icon": "fa-truck",
+            "label": "Abschleppdienst"
+        },
+        "ambulance": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canHeal": true,
+                        "canCheckVitals": true
+                    },
+                    "label": "Sanitaeter",
+                    "actions": {
+                        "player": [
+                            "ems_vitals",
+                            "ems_heal"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "2": {
+                    "permissions": {
+                        "canCheckVitals": true,
+                        "canHeal": true,
+                        "canTransport": true,
+                        "canRevive": true
+                    },
+                    "label": "Chefarzt",
+                    "actions": {
+                        "player": [
+                            "ems_vitals",
+                            "ems_heal",
+                            "ems_revive",
+                            "ems_transport"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "1": {
+                    "permissions": {
+                        "canCheckVitals": true,
+                        "canHeal": true,
+                        "canTransport": true,
+                        "canRevive": true
+                    },
+                    "label": "Notarzt",
+                    "actions": {
+                        "player": [
+                            "ems_vitals",
+                            "ems_heal",
+                            "ems_revive",
+                            "ems_transport"
+                        ],
+                        "vehicle": []
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#10B981",
+            "icon": "fa-heart-pulse",
+            "label": "Rettungsdienst"
+        },
+        "fire": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canExtinguish": true,
+                        "canFirstAid": true
+                    },
+                    "label": "Feuerwehrmann",
+                    "actions": {
+                        "player": [
+                            "fire_first_aid"
+                        ],
+                        "vehicle": [
+                            "fire_extinguish"
+                        ]
+                    }
+                },
+                "2": {
+                    "permissions": {
+                        "canExtinguish": true,
+                        "canFirstAid": true,
+                        "canRescue": true
+                    },
+                    "label": "Kommandant",
+                    "actions": {
+                        "player": [
+                            "fire_first_aid",
+                            "fire_rescue_ped"
+                        ],
+                        "vehicle": [
+                            "fire_extinguish",
+                            "fire_rescue"
+                        ]
+                    }
+                },
+                "1": {
+                    "permissions": {
+                        "canExtinguish": true,
+                        "canFirstAid": true,
+                        "canRescue": true
+                    },
+                    "label": "Brandmeister",
+                    "actions": {
+                        "player": [
+                            "fire_first_aid",
+                            "fire_rescue_ped"
+                        ],
+                        "vehicle": [
+                            "fire_extinguish",
+                            "fire_rescue"
+                        ]
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#EF4444",
+            "icon": "fa-fire-extinguisher",
+            "label": "Feuerwehr"
+        },
+        "redcircle": {
+            "ranks": {
+                "4": {
+                    "permissions": {
+                        "canHire": true,
+                        "canSearch": true,
+                        "canPromote": true,
+                        "canFire": true
+                    },
+                    "label": "Manager",
+                    "actions": {
+                        "player": [
+                            "rc_search",
+                            "rc_hire",
+                            "rc_fire",
+                            "rc_promote"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "3": {
+                    "permissions": {
+                        "canSearch": true,
+                        "canServeDrink": true
+                    },
+                    "label": "Barkeeper",
+                    "actions": {
+                        "player": [
+                            "rc_search",
+                            "rc_serve_drink"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "2": {
+                    "permissions": {
+                        "canRequestRide": true
+                    },
+                    "label": "Chauffeur",
+                    "actions": {
+                        "player": [],
+                        "vehicle": [
+                            "rc_request_ride"
+                        ]
+                    }
+                },
+                "1": {
+                    "permissions": {
+                        "canEscort": true,
+                        "canSearch": true
+                    },
+                    "label": "Security",
+                    "actions": {
+                        "player": [
+                            "rc_search",
+                            "rc_escort"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "0": {
+                    "permissions": [],
+                    "label": "Recruit",
+                    "actions": {
+                        "player": [
+                            "civ_handshake"
+                        ],
+                        "vehicle": []
+                    }
+                },
+                "6": {
+                    "permissions": {
+                        "canDjControl": true
+                    },
+                    "label": "DJ",
+                    "actions": {
+                        "player": [],
+                        "vehicle": []
+                    }
+                },
+                "5": {
+                    "permissions": {
+                        "canFinance": true,
+                        "canHire": true,
+                        "canSearch": true,
+                        "canPromote": true,
+                        "canFire": true
+                    },
+                    "label": "Owner",
+                    "actions": {
+                        "player": [
+                            "rc_search",
+                            "rc_hire",
+                            "rc_fire",
+                            "rc_promote",
+                            "rc_finance"
+                        ],
+                        "vehicle": []
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#FF2C2C",
+            "icon": "fa-wine-glass",
+            "label": "Red Circle"
+        },
+        "citizen": {
+            "ranks": {
+                "0": {
+                    "permissions": {
+                        "canTrade": true
+                    },
+                    "label": "Buerger",
+                    "actions": {
+                        "player": [
+                            "civ_handshake",
+                            "civ_trade",
+                            "civ_help_up"
+                        ],
+                        "vehicle": [
+                            "civ_check_plate"
+                        ]
+                    }
+                }
+            },
+            "enabled": true,
+            "color": "#9CA3AF",
+            "icon": "fa-user",
+            "label": "Zivilist"
+        }
+    },
+    "globals": {
+        "highlightFadeMs": 120,
+        "markerCircleSpin": true,
+        "markerColor": "#3296FF",
+        "menuAnchor": "right",
+        "maxDistance": 9.0,
+        "uiColor": "#00FFB4",
+        "showVehicleStats": true,
+        "enableSounds": true,
+        "markerArrowBobbing": true,
+        "outlinePulse": true,
+        "defaultTheme": "glass",
+        "outlineColor": "#FF3232"
+    }
+}

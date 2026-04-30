@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>clp_gmenu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ============================================================
+         HAUPTMENUE (Hexagon-Layout, transparent)
+    ============================================================ -->
+    <div id="menu-root" class="hidden" data-theme="glass">
+
+        <!-- Ambient Glow am rechten Rand (subtiler Lichtschein) -->
+        <div class="ambient-glow"></div>
+
+        <!-- TARGET-CHIP (oben, schwebt) -->
+        <div id="target-chip" class="chip">
+            <div class="chip-icon"><i id="header-icon-i" class="fa-solid fa-eye"></i></div>
+            <div class="chip-body">
+                <div class="chip-title" id="header-title">Ziel</div>
+                <div class="chip-sub"   id="header-sub">--</div>
+            </div>
+            <div class="chip-distance" id="header-distance">0m</div>
+            <span class="chip-pulse"></span>
+        </div>
+
+        <!-- VEHICLE-STATS (Hex-Chips, schweben) -->
+        <div id="vehicle-stats" class="stats-chips hidden">
+            <div class="stat-hex" title="Motor">
+                <div class="stat-hex-inner">
+                    <i class="fa-solid fa-gears"></i>
+                    <span id="stat-engine-val">100%</span>
+                </div>
+                <div class="stat-hex-bar"><span id="stat-engine"></span></div>
+            </div>
+            <div class="stat-hex" title="Karosserie">
+                <div class="stat-hex-inner">
+                    <i class="fa-solid fa-car-burst"></i>
+                    <span id="stat-body-val">100%</span>
+                </div>
+                <div class="stat-hex-bar"><span id="stat-body"></span></div>
+            </div>
+            <div class="stat-hex" title="Geschwindigkeit">
+                <div class="stat-hex-inner">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span id="stat-speed-val">0</span>
+                </div>
+            </div>
+            <div class="stat-hex" title="Kennzeichen">
+                <div class="stat-hex-inner mono">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span id="stat-plate-val">---</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLAYER-STATS -->
+        <div id="player-stats" class="stats-chips hidden">
+            <div class="stat-hex" title="HP">
+                <div class="stat-hex-inner">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span id="stat-hp-val">100</span>
+                </div>
+                <div class="stat-hex-bar"><span id="stat-hp"></span></div>
+            </div>
+            <div class="stat-hex hidden" id="stat-dead" title="Bewusstlos">
+                <div class="stat-hex-inner crit">
+                    <i class="fa-solid fa-skull"></i>
+                    <span>Down</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- HEX-OPTIONS (Hauptliste) -->
+        <div id="menu-options" class="hex-list"></div>
+
+        <!-- FOOTER: Job + Inline Color-Manager + Action-Buttons -->
+        <div id="menu-footer">
+            <div class="chip job-chip">
+                <div class="chip-icon"><i class="fa-solid fa-briefcase" id="footer-job-icon"></i></div>
+                <div class="chip-body">
+                    <div class="chip-title" id="footer-job-label">--</div>
+                    <div class="chip-sub"   id="footer-rank-label">Rang 0</div>
+                </div>
+            </div>
+
+            <!-- INLINE COLOR-MANAGER (Hex-Swatches mit eingebettetem color-input) -->
+            <div class="color-quick" id="color-quick" title="Farben (klick zum Aendern)">
+                <button class="swatch-hex" data-color="ui" title="UI-Akzent" style="--swatch:#00FFB4">
+                    <input type="color" data-color-input="ui" value="#00FFB4">
+                    <i class="fa-solid fa-paintbrush"></i>
+                </button>
+                <button class="swatch-hex" data-color="outline" title="Fahrzeug-Outline" style="--swatch:#FF3232">
+                    <input type="color" data-color-input="outline" value="#FF3232">
+                    <i class="fa-solid fa-car-side"></i>
+                </button>
+                <button class="swatch-hex" data-color="marker" title="Personen-Marker" style="--swatch:#3296FF">
+                    <input type="color" data-color-input="marker" value="#3296FF">
+                    <i class="fa-solid fa-location-dot"></i>
+                </button>
+            </div>
+
+            <div class="footer-actions">
+                <button class="hex-btn" id="btn-theme" title="Theme wechseln">
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+                <button class="hex-btn" id="btn-settings" title="Einstellungen">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+                <button class="hex-btn close" id="btn-close" title="Schliessen (ESC)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SETTINGS-PANEL (volles Settings-UI als Overlay)
+    ============================================================ -->
+    <div id="settings-overlay" class="hidden">
+        <div id="settings-panel" data-theme="glass">
+            <header class="settings-header">
+                <div class="settings-title">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>clp_gmenu Einstellungen</h2>
+                </div>
+                <button class="hex-btn close" id="settings-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+
+            <div class="settings-body">
+                <section>
+                    <h3><i class="fa-solid fa-palette"></i> Theme</h3>
+                    <div class="theme-grid" id="theme-grid"></div>
+                </section>
+
+                <section>
+                    <h3><i class="fa-solid fa-droplet"></i> Farben</h3>
+                    <div class="color-row">
+                        <label>UI-Akzent</label>
+                        <input type="color" id="color-ui" value="#00ffb4">
+                        <span class="hex-text" id="color-ui-hex">#00FFB4</span>
+                    </div>
+                    <div class="color-row">
+                        <label>Fahrzeug-Outline (Raycast)</label>
+                        <input type="color" id="color-outline" value="#ff3232">
+                        <span class="hex-text" id="color-outline-hex">#FF3232</span>
+                    </div>
+                    <div class="color-row">
+                        <label>Personen-Marker (Raycast)</label>
+                        <input type="color" id="color-marker" value="#3296ff">
+                        <span class="hex-text" id="color-marker-hex">#3296FF</span>
+                    </div>
+                </section>
+
+                <section>
+                    <h3><i class="fa-solid fa-toggle-on"></i> Verhalten</h3>
+                    <div class="toggle-row">
+                        <label>Sound-Effekte</label>
+                        <label class="switch"><input type="checkbox" id="opt-sounds"><span class="slider"></span></label>
+                    </div>
+                    <div class="toggle-row">
+                        <label>Fahrzeug-Statistiken zeigen</label>
+                        <label class="switch"><input type="checkbox" id="opt-stats"><span class="slider"></span></label>
+                    </div>
+                </section>
+
+                <section>
+                    <h3><i class="fa-solid fa-ruler"></i> Reichweite</h3>
+                    <div class="slider-row">
+                        <label>Max-Distanz: <span id="slider-distance-val">9</span>m</label>
+                        <input type="range" id="slider-distance" min="5" max="12" step="0.5" value="9">
+                    </div>
+                </section>
+
+                <section>
+                    <h3><i class="fa-solid fa-eye"></i> Vorschau</h3>
+                    <div id="preview-area">
+                        <div class="hex-list">
+                            <div class="hex-option" style="--i:0">
+                                <div class="hex-inner">
+                                    <div class="hex-icon"><i class="fa-solid fa-wrench"></i></div>
+                                    <div class="hex-label">Reparieren</div>
+                                    <div class="hex-key">1</div>
+                                </div>
+                            </div>
+                            <div class="hex-option" style="--i:1">
+                                <div class="hex-inner">
+                                    <div class="hex-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                                    <div class="hex-label">Durchsuchen</div>
+                                    <div class="hex-key">2</div>
+                                </div>
+                            </div>
+                            <div class="hex-option" style="--i:2">
+                                <div class="hex-inner">
+                                    <div class="hex-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+                                    <div class="hex-label">Beschlagnahmen</div>
+                                    <div class="hex-key">3</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <footer class="settings-footer">
+                <button class="btn-secondary" id="settings-reset-btn">
+                    <i class="fa-solid fa-rotate-left"></i> Zuruecksetzen
+                </button>
+                <button class="btn-primary" id="settings-save-btn">
+                    <i class="fa-solid fa-check"></i> Speichern
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <iframe id="admin-frame" class="hidden" src="admin/admin.html"></iframe>
+
+    <script src="script.js?v=2.0.0"></script>
+</body>
+</html>
