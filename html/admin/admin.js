@@ -159,6 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (target === 'bridges') refreshBridges();
             if (target === 'storage') refreshStorage();
             if (target === 'identity') renderIdentity();
+            if (target === 'impound') refreshImpound();
+            if (target === 'themes')  renderThemes();
         });
     });
 
@@ -204,8 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Items tab
     $('btn-add-item').addEventListener('click', addNewItem);
 
-    // Audit refresh
+    // Audit refresh + filter
     $('btn-refresh-audit').addEventListener('click', refreshAudit);
+    $('btn-apply-audit-filter') && $('btn-apply-audit-filter').addEventListener('click', refreshAudit);
+    $('btn-clear-audit-filter') && $('btn-clear-audit-filter').addEventListener('click', clearAuditFilter);
 
     // NPCs / Zones / Bridges / Storage
     $('btn-add-npc') && $('btn-add-npc').addEventListener('click', addNewNpc);
@@ -220,6 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     $('btn-refresh-bridges') && $('btn-refresh-bridges').addEventListener('click', refreshBridges);
     $('btn-refresh-storage') && $('btn-refresh-storage').addEventListener('click', refreshStorage);
+    $('btn-refresh-impound') && $('btn-refresh-impound').addEventListener('click', refreshImpound);
+    $('btn-add-lot')         && $('btn-add-lot').addEventListener('click', addNewLot);
+    $('btn-add-theme')       && $('btn-add-theme').addEventListener('click', addNewTheme);
 
     // ESC schliesst Editor
     document.addEventListener('keyup', (e) => {
@@ -908,6 +915,18 @@ function renderGlobals() {
             <label>Vehicle-Stats default an</label>
             <label class="toggle-mini"><input type="checkbox" id="g-stats" ${g.showVehicleStats !== false ? 'checked' : ''}><span class="slider"></span></label>
         </div>
+        <div class="form-row">
+            <label>Default Sound-Preset (Server)</label>
+            <select id="g-sound-preset">
+                ${['soft','crisp','retro','off'].map(p => `<option value="${p}" ${(g.defaultSoundPreset || 'soft') === p ? 'selected' : ''}>${p}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-row">
+            <label>Default Locale (Server)</label>
+            <select id="g-locale">
+                ${['de','en'].map(l => `<option value="${l}" ${(g.defaultLocale || 'de') === l ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+        </div>
     `;
 
     const wireColor = (id, key) => {
@@ -939,18 +958,36 @@ function renderGlobals() {
     $('g-spin').addEventListener('change',    e => { patchPath('globals.markerCircleSpin',   e.target.checked); g.markerCircleSpin = e.target.checked; });
     $('g-sounds').addEventListener('change',  e => { patchPath('globals.enableSounds',       e.target.checked); g.enableSounds = e.target.checked; });
     $('g-stats').addEventListener('change',   e => { patchPath('globals.showVehicleStats',   e.target.checked); g.showVehicleStats = e.target.checked; });
+    $('g-sound-preset') && $('g-sound-preset').addEventListener('change', e => { patchPath('globals.defaultSoundPreset', e.target.value); g.defaultSoundPreset = e.target.value; });
+    $('g-locale')       && $('g-locale').addEventListener('change',       e => { patchPath('globals.defaultLocale',      e.target.value); g.defaultLocale      = e.target.value; });
 }
 
 // ============================================================
 //  AUDIT TAB
 // ============================================================
 
+function getAuditFilter() {
+    const actor  = ($('audit-filter-actor')  && $('audit-filter-actor').value  || '').trim();
+    const action = ($('audit-filter-action') && $('audit-filter-action').value || '').trim();
+    let limit = parseInt(($('audit-filter-limit') && $('audit-filter-limit').value) || '200', 10);
+    if (!isFinite(limit) || limit < 10) limit = 200;
+    if (limit > 500) limit = 500;
+    const opts = { limit };
+    if (actor)  opts.actor  = actor;
+    if (action) opts.action = action;
+    return opts;
+}
+
 function refreshAudit() {
-    sendToLua('audit', { limit: 200 });
-    // Antwort kommt nicht automatisch zurueck (der Parent muss cb-Antwort
-    // wieder per postMessage forwarden). Wir setzen optimistisch ein
-    // Lade-Zeichen.
+    sendToLua('audit', getAuditFilter());
     $('audit-list').innerHTML = '<div class="empty-state"><p>L&auml;dt...</p></div>';
+}
+
+function clearAuditFilter() {
+    if ($('audit-filter-actor'))  $('audit-filter-actor').value  = '';
+    if ($('audit-filter-action')) $('audit-filter-action').value = '';
+    if ($('audit-filter-limit'))  $('audit-filter-limit').value  = '200';
+    refreshAudit();
 }
 
 window.addEventListener('message', (event) => {
@@ -959,8 +996,12 @@ window.addEventListener('message', (event) => {
         renderAudit(d.payload);
     } else if (d.event === 'bridgesList' && d.payload) {
         renderBridges(d.payload);
+    } else if (d.event === 'bridgeStats' && d.payload) {
+        renderBridgeStats(d.payload);
     } else if (d.event === 'storageStatus' && d.payload) {
         renderStorage(d.payload);
+    } else if (d.event === 'impoundStatus' && d.payload) {
+        renderImpound(d.payload);
     }
 });
 
@@ -1295,7 +1336,40 @@ function addNewZone() {
 
 function refreshBridges() {
     sendToLua('bridges', {});
+    sendToLua('bridgeStats', {});
     $('bridges-list').innerHTML = '<div class="empty-state"><p>L&auml;dt...</p></div>';
+    if ($('bridge-stats')) {
+        $('bridge-stats').innerHTML = '<div class="empty-state"><p>Lade Stats...</p></div>';
+    }
+}
+
+function renderBridgeStats(stats) {
+    const wrap = $('bridge-stats');
+    if (!wrap) return;
+    const t = stats.totals || {};
+    const r = stats.resources || {};
+    const resKeys = Object.keys(r).sort();
+    let resHtml = '';
+    if (resKeys.length === 0) {
+        resHtml = '<p style="opacity:.7;">Keine Drittanbieter-Resourcen registriert.</p>';
+    } else {
+        resHtml = '<table class="bridge-stats-table">'
+            + '<thead><tr><th>Resource</th><th style="text-align:right;">Aktionen</th></tr></thead><tbody>';
+        resKeys.forEach(k => {
+            resHtml += `<tr><td><code>${escapeHtml(k)}</code></td><td style="text-align:right;">${r[k]}</td></tr>`;
+        });
+        resHtml += '</tbody></table>';
+    }
+    wrap.innerHTML = `
+        <div class="kpi-row">
+            <div class="kpi"><div class="kpi-num">${t.total || 0}</div><div class="kpi-lbl">Total</div></div>
+            <div class="kpi"><div class="kpi-num">${t.byTarget || 0}</div><div class="kpi-lbl">Target</div></div>
+            <div class="kpi"><div class="kpi-num">${t.byNpc || 0}</div><div class="kpi-lbl">NPC</div></div>
+            <div class="kpi"><div class="kpi-num">${t.byZone || 0}</div><div class="kpi-lbl">Zone</div></div>
+            <div class="kpi"><div class="kpi-num">${t.byModel || 0}</div><div class="kpi-lbl">Modell</div></div>
+        </div>
+        ${resHtml}
+    `;
 }
 
 function renderBridges(data) {
@@ -1480,3 +1554,305 @@ function escapeHtml(s) {
     }[c]));
 }
 function escapeAttr(s) { return escapeHtml(s); }
+
+// ============================================================
+//  IMPOUND TAB (A1 + C12)
+// ============================================================
+
+let _impoundCache = null;
+
+function refreshImpound() {
+    sendToLua('impound', {});
+    if ($('impound-defaults')) $('impound-defaults').innerHTML = '<div class="empty-state"><p>L&auml;dt...</p></div>';
+}
+
+function impoundCfg() {
+    State.snapshot.impound = State.snapshot.impound || {};
+    return State.snapshot.impound;
+}
+
+function patchImpound(key, value) {
+    const imp = impoundCfg();
+    imp[key] = value;
+    patchPath('impound.' + key, value);
+}
+
+function renderImpound(data) {
+    _impoundCache = data || _impoundCache;
+    const imp = impoundCfg();
+    const def = (data && data.defaults) || {};
+
+    const dWrap = $('impound-defaults');
+    if (dWrap) {
+        dWrap.innerHTML = `
+            <div class="form-row"><label>Default Fee ($)</label><input type="number" id="imp-def-fee"  min="0" step="50"  value="${imp.defaultFee   != null ? imp.defaultFee   : (def.DefaultFee || 5000)}"></div>
+            <div class="form-row"><label>Min Fee ($)</label>    <input type="number" id="imp-min-fee"  min="0" step="10"  value="${imp.minFee       != null ? imp.minFee       : (def.MinFee     || 100)}"></div>
+            <div class="form-row"><label>Max Fee ($)</label>    <input type="number" id="imp-max-fee"  min="0" step="100" value="${imp.maxFee       != null ? imp.maxFee       : (def.MaxFee     || 100000)}"></div>
+            <div class="form-row"><label>Default Lot</label>    <input type="text"   id="imp-def-lot"  value="${escapeAttr(imp.defaultLot || def.DefaultLot || 'los_santos')}"></div>
+            <div class="form-row"><label>Payment-Account</label><input type="text"   id="imp-pay-acct" value="${escapeAttr(imp.paymentAccount || def.PaymentAccount || 'bank')}"></div>
+            <div class="form-row"><label>Release-Timeout (s)</label><input type="number" id="imp-rel-to" min="60" step="60" value="${imp.releaseTimeoutSec || 600}"></div>
+            <div class="form-row"><label>Interaktions-Distanz (m)</label><input type="number" id="imp-int-dist" min="1" max="10" step="0.5" value="${imp.interactDistance || 3.5}"></div>
+        `;
+        $('imp-def-fee')  && $('imp-def-fee').addEventListener('change',  e => patchImpound('defaultFee',  parseInt(e.target.value, 10) || 0));
+        $('imp-min-fee')  && $('imp-min-fee').addEventListener('change',  e => patchImpound('minFee',      parseInt(e.target.value, 10) || 0));
+        $('imp-max-fee')  && $('imp-max-fee').addEventListener('change',  e => patchImpound('maxFee',      parseInt(e.target.value, 10) || 0));
+        $('imp-def-lot')  && $('imp-def-lot').addEventListener('change',  e => patchImpound('defaultLot',  e.target.value.trim() || 'los_santos'));
+        $('imp-pay-acct') && $('imp-pay-acct').addEventListener('change', e => patchImpound('paymentAccount', e.target.value.trim() || 'bank'));
+        $('imp-rel-to')   && $('imp-rel-to').addEventListener('change',   e => patchImpound('releaseTimeoutSec', parseInt(e.target.value, 10) || 600));
+        $('imp-int-dist') && $('imp-int-dist').addEventListener('change', e => patchImpound('interactDistance',  parseFloat(e.target.value) || 3.5));
+    }
+
+    const sWrap = $('impound-stats');
+    if (sWrap) {
+        const total = (data && data.total) || 0;
+        const totalFee = (data && data.totalFee) || 0;
+        const perLot = (data && data.perLot) || {};
+        let perLotHtml = '';
+        Object.keys(perLot).sort().forEach(k => {
+            perLotHtml += `<span class="kpi mini"><strong>${perLot[k]}</strong> <small>${escapeHtml(k)}</small></span>`;
+        });
+        sWrap.innerHTML = `
+            <div class="kpi-row">
+                <div class="kpi"><div class="kpi-num">${total}</div><div class="kpi-lbl">Beschlagnahmt aktuell</div></div>
+                <div class="kpi"><div class="kpi-num">$${totalFee.toLocaleString()}</div><div class="kpi-lbl">Offene Gebuehren</div></div>
+            </div>
+            <div class="kpi-row">${perLotHtml || '<small style="opacity:.6;">Keine Eintraege.</small>'}</div>
+        `;
+    }
+
+    renderImpoundLots(data);
+    renderImpoundOwners(data);
+}
+
+function renderImpoundLots(data) {
+    const wrap = $('impound-lots');
+    if (!wrap) return;
+    const lotsCfg = (impoundCfg().lots) || {};
+    const live = (data && data.lots) || [];
+    const liveById = {};
+    live.forEach(l => { liveById[l.id] = l; });
+
+    const allIds = {};
+    Object.keys(lotsCfg).forEach(k => allIds[k] = true);
+    live.forEach(l => allIds[l.id] = true);
+    const ids = Object.keys(allIds).sort();
+
+    if (ids.length === 0) {
+        wrap.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Noch keine Hoefe konfiguriert. Klick <strong>Hof anlegen</strong>.</p></div>';
+        return;
+    }
+
+    wrap.innerHTML = `<h3 style="margin:18px 0 8px;">Hoefe</h3>` + ids.map(id => {
+        const ovr  = lotsCfg[id] || null;
+        const liveLot = liveById[id] || { label: id, slots: 0 };
+        const label = (ovr && ovr.label) || liveLot.label || id;
+        const slotsCount = (ovr && ovr.slots && ovr.slots.length) || liveLot.slots || 0;
+        const pay  = (ovr && ovr.payCoords) || {};
+        const cam  = (ovr && ovr.releaseCam) || {};
+        const liveCount = (data && data.perLot && data.perLot[id]) || 0;
+        return `
+            <div class="lot-card" data-lot="${escapeAttr(id)}">
+                <div class="lot-head">
+                    <div>
+                        <strong>${escapeHtml(label)}</strong>
+                        <code style="margin-left:8px; opacity:.6;">${escapeHtml(id)}</code>
+                    </div>
+                    <div class="lot-meta">
+                        <span>${slotsCount} Slots</span>
+                        <span>${liveCount} aktiv</span>
+                        <button class="btn-ghost btn-mini" data-act="del" data-lot="${escapeAttr(id)}"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="lot-body">
+                    <div class="form-row"><label>Label</label><input type="text" data-key="label"  value="${escapeAttr(label)}"></div>
+                    <div class="form-row"><label>Pay-Coords (x y z)</label>
+                        <input type="text" data-key="payCoords" value="${pay.x != null ? pay.x : ''} ${pay.y != null ? pay.y : ''} ${pay.z != null ? pay.z : ''}" placeholder="409.6 -1622.3 29.3">
+                    </div>
+                    <div class="form-row"><label>Release-Cam (x y z heading)</label>
+                        <input type="text" data-key="releaseCam" value="${cam.x != null ? cam.x : ''} ${cam.y != null ? cam.y : ''} ${cam.z != null ? cam.z : ''} ${cam.h != null ? cam.h : (cam.w != null ? cam.w : '')}" placeholder="445.886 -1622.327 37.313 82.253">
+                    </div>
+                    <div class="form-row"><label>Slots (eine Zeile pro Slot: x y z heading)</label>
+                        <textarea data-key="slots" rows="4" placeholder="409.5 -1623.4 28.3 320">${(ovr && ovr.slots ? ovr.slots.map(s => `${s.x} ${s.y} ${s.z} ${s.h || 0}`).join('\n') : '')}</textarea>
+                    </div>
+                    <div style="text-align:right;">
+                        <button class="btn-primary btn-mini" data-act="save" data-lot="${escapeAttr(id)}"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    wrap.querySelectorAll('button[data-act="del"]').forEach(b => {
+        b.addEventListener('click', () => {
+            const id = b.dataset.lot;
+            if (!confirm('Hof "' + id + '" wirklich loeschen?')) return;
+            const lots = impoundCfg().lots || {};
+            // false-Marker entfernt Default-Hof aus Config.Impound.Lots (siehe server/impound.lua)
+            lots[id] = false;
+            patchPath('impound.lots.' + id, false);
+            impoundCfg().lots = lots;
+            refreshImpound();
+        });
+    });
+    wrap.querySelectorAll('button[data-act="save"]').forEach(b => {
+        b.addEventListener('click', () => {
+            const id = b.dataset.lot;
+            const card = wrap.querySelector(`.lot-card[data-lot="${cssEscape(id)}"]`);
+            if (!card) return;
+            const get = k => card.querySelector(`[data-key="${k}"]`).value.trim();
+            const parseVec = s => {
+                const parts = s.split(/\s+/).map(parseFloat).filter(n => !isNaN(n));
+                return parts;
+            };
+            const slotsTxt = get('slots');
+            const slots = slotsTxt.split(/\n/).map(parseVec).filter(p => p.length >= 3).map(p => ({ x: p[0], y: p[1], z: p[2], h: p[3] || 0 }));
+            const pay = parseVec(get('payCoords'));
+            const cam = parseVec(get('releaseCam'));
+            const lot = {
+                label: get('label') || id,
+                slots: slots,
+            };
+            if (pay.length >= 3) lot.payCoords  = { x: pay[0], y: pay[1], z: pay[2] };
+            if (cam.length >= 3) lot.releaseCam = { x: cam[0], y: cam[1], z: cam[2], h: cam[3] || 0 };
+            const lots = impoundCfg().lots || {};
+            lots[id] = lot;
+            impoundCfg().lots = lots;
+            patchPath('impound.lots.' + id, lot);
+        });
+    });
+}
+
+function cssEscape(s) {
+    return String(s).replace(/["\\]/g, '\\$&');
+}
+
+function addNewLot() {
+    const id = (prompt('Neue Hof-ID (kein Whitespace, z.B. del_perro):') || '').trim().toLowerCase().replace(/\s+/g, '_');
+    if (!id) return;
+    if (!/^[a-z0-9_]+$/.test(id)) { alert('Nur Kleinbuchstaben/Ziffern/Underscore.'); return; }
+    const lots = impoundCfg().lots || {};
+    if (lots[id]) { alert('Existiert bereits.'); return; }
+    lots[id] = {
+        label: id,
+        slots: [],
+        payCoords:  { x: 0, y: 0, z: 0 },
+        releaseCam: { x: 0, y: 0, z: 0, h: 0 },
+    };
+    impoundCfg().lots = lots;
+    patchPath('impound.lots.' + id, lots[id]);
+    refreshImpound();
+}
+
+function renderImpoundOwners(data) {
+    const wrap = $('impound-owners');
+    if (!wrap) return;
+    const owners = (data && data.owners) || {};
+    const ids = Object.keys(owners);
+    if (ids.length === 0) {
+        wrap.innerHTML = '<h3 style="margin:18px 0 8px;">Per-Spieler</h3><p style="opacity:.7;">Keine Eintraege.</p>';
+        return;
+    }
+    let html = '<h3 style="margin:18px 0 8px;">Per-Spieler</h3>';
+    html += '<table class="bridge-stats-table"><thead><tr><th>Spieler-ID</th><th style="text-align:right;">Fahrzeuge</th><th style="text-align:right;">Gesamt-Fee</th><th>Hoefe</th></tr></thead><tbody>';
+    ids.sort().forEach(id => {
+        const o = owners[id];
+        const lots = Object.keys(o.lots || {}).map(k => `${k}:${o.lots[k]}`).join(', ');
+        html += `<tr><td><code>${escapeHtml(id)}</code></td><td style="text-align:right;">${o.count || 0}</td><td style="text-align:right;">$${(o.totalFee || 0).toLocaleString()}</td><td>${escapeHtml(lots)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+}
+
+// ============================================================
+//  THEMES TAB (A2)
+// ============================================================
+
+const BUILTIN_THEMES = ['glass','dark','neon','redcircle','minimal','custom','cyberpunk','midnight','sunset','royal','hologram','matrix'];
+
+function themesCfg() {
+    State.snapshot.themes = State.snapshot.themes || {};
+    return State.snapshot.themes;
+}
+
+function renderThemes() {
+    const fWrap = $('themes-form');
+    const lWrap = $('themes-list');
+    if (!fWrap || !lWrap || !State.snapshot) return;
+    const g = State.snapshot.globals || {};
+
+    fWrap.innerHTML = `
+        <div class="form-row">
+            <label>Server-Default-Theme</label>
+            <select id="th-default">
+                ${BUILTIN_THEMES.map(t => `<option value="${t}" ${(g.defaultTheme || 'glass') === t ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+        </div>
+    `;
+    $('th-default') && $('th-default').addEventListener('change', e => {
+        patchPath('globals.defaultTheme', e.target.value);
+        g.defaultTheme = e.target.value;
+    });
+
+    const themes = themesCfg();
+    const ids = Object.keys(themes).sort();
+    if (ids.length === 0) {
+        lWrap.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Keine custom Themes. Klick <strong>Theme hinzufuegen</strong> fuer ein neues.</p></div>';
+        return;
+    }
+    lWrap.innerHTML = `<h3 style="margin:18px 0 8px;">Custom Themes</h3>` + ids.map(id => {
+        const t = themes[id] || {};
+        return `
+            <div class="theme-card" data-theme="${escapeAttr(id)}" style="--accent:${escapeAttr(t.accent || '#00ffb4')}; --outline:${escapeAttr(t.outline || '#ff3232')};">
+                <div class="theme-card-head">
+                    <strong>${escapeHtml(t.label || id)}</strong>
+                    <code style="opacity:.6;">${escapeHtml(id)}</code>
+                    <button class="btn-ghost btn-mini" data-act="del-theme" data-theme="${escapeAttr(id)}"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <div class="theme-preview">
+                    <div class="tp-bg"></div>
+                    <div class="tp-accent"></div>
+                    <div class="tp-outline"></div>
+                </div>
+                <div class="form-row"><label>Label</label><input type="text" data-key="label" value="${escapeAttr(t.label || id)}"></div>
+                <div class="form-row"><label>Akzent (HEX)</label><input type="color" data-key="accent" value="${escapeAttr(t.accent || '#00FFB4')}"></div>
+                <div class="form-row"><label>Outline (HEX)</label><input type="color" data-key="outline" value="${escapeAttr(t.outline || '#FF3232')}"></div>
+                <div style="text-align:right;"><button class="btn-primary btn-mini" data-act="save-theme" data-theme="${escapeAttr(id)}"><i class="fa-solid fa-floppy-disk"></i> Speichern</button></div>
+            </div>
+        `;
+    }).join('');
+
+    lWrap.querySelectorAll('button[data-act="del-theme"]').forEach(b => {
+        b.addEventListener('click', () => {
+            const id = b.dataset.theme;
+            if (!confirm('Theme "' + id + '" loeschen?')) return;
+            delete themes[id];
+            deletePath('themes.' + id);
+            renderThemes();
+        });
+    });
+    lWrap.querySelectorAll('button[data-act="save-theme"]').forEach(b => {
+        b.addEventListener('click', () => {
+            const id = b.dataset.theme;
+            const card = lWrap.querySelector(`.theme-card[data-theme="${cssEscape(id)}"]`);
+            if (!card) return;
+            const t = {
+                label:   card.querySelector('[data-key="label"]').value.trim() || id,
+                accent:  card.querySelector('[data-key="accent"]').value,
+                outline: card.querySelector('[data-key="outline"]').value,
+            };
+            themes[id] = t;
+            patchPath('themes.' + id, t);
+        });
+    });
+}
+
+function addNewTheme() {
+    const id = (prompt('Theme-ID (z.B. neon_pink):') || '').trim().toLowerCase().replace(/\s+/g, '_');
+    if (!id) return;
+    if (!/^[a-z0-9_]+$/.test(id)) { alert('Nur Kleinbuchstaben/Ziffern/Underscore.'); return; }
+    const themes = themesCfg();
+    if (themes[id]) { alert('Existiert bereits.'); return; }
+    themes[id] = { label: id, accent: '#00FFB4', outline: '#FF3232' };
+    patchPath('themes.' + id, themes[id]);
+    renderThemes();
+}

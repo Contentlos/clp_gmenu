@@ -866,8 +866,52 @@ window.addEventListener('message', (event) => {
             }
             break;
         }
+        case 'showBusinessCard':
+            showBusinessCard(d.meta || {});
+            break;
+        case 'hideBusinessCard':
+            hideBusinessCard();
+            break;
     }
 });
+
+// ============================================================
+//  B6: Visitenkarten-NUI
+// ============================================================
+
+let _bcHideTimer = null;
+
+function showBusinessCard(meta) {
+    const overlay = document.getElementById('business-card-overlay');
+    if (!overlay) return;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val == null || val === '' ? '—' : val);
+    };
+    set('bc-firstname', meta.firstName || '—');
+    set('bc-lastname',  meta.lastName  || '');
+    const job = meta.jobLabel || meta.job || '—';
+    set('bc-job',       job);
+    set('bc-phone',     meta.phone     || '—');
+    set('bc-handed',    meta.handedAt ? ('uebergeben am ' + meta.handedAt) : '');
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (_bcHideTimer) clearTimeout(_bcHideTimer);
+    _bcHideTimer = setTimeout(hideBusinessCard, 7000);
+}
+
+function hideBusinessCard() {
+    const overlay = document.getElementById('business-card-overlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (_bcHideTimer) { clearTimeout(_bcHideTimer); _bcHideTimer = null; }
+    fetch(`https://${RES}/businessCard:close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+    }).catch(() => {});
+}
 
 // ============================================================
 //  IFRAME -> LUA (Bruecke fuer Admin-Editor)
@@ -887,10 +931,12 @@ window.addEventListener('message', (event) => {
     .then(result => {
         if (result === null || result === undefined) return;
         const cbToEvent = {
-            audit:   'auditList',
-            export:  'exportData',
-            bridges: 'bridgesList',
-            storage: 'storageStatus',
+            audit:       'auditList',
+            export:      'exportData',
+            bridges:     'bridgesList',
+            bridgeStats: 'bridgeStats',
+            storage:     'storageStatus',
+            impound:     'impoundStatus',
         };
         const evt = cbToEvent[d.cb];
         if (!evt) return;
@@ -911,6 +957,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('btn-close').addEventListener('click',    doClose);
     $('btn-settings').addEventListener('click', () => postLua('openSettings', {}));
+
+    const bcClose = document.getElementById('bc-close');
+    if (bcClose) bcClose.addEventListener('click', hideBusinessCard);
 
     $('btn-theme').addEventListener('click', () => {
         const root = DOM.menuRoot;

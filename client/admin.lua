@@ -124,7 +124,9 @@ RegisterNUICallback('admin:export', function(_, cb)
 end)
 
 RegisterNUICallback('admin:audit', function(data, cb)
-    local list = lib.callback.await('clp_gmenu:admin:audit', false, (data and data.limit) or 100)
+    -- data kann jetzt { limit, actor, action, since, until_ } sein
+    local opts = data or { limit = 200 }
+    local list = lib.callback.await('clp_gmenu:admin:audit', false, opts)
     cb(list or {})
 end)
 
@@ -133,9 +135,19 @@ RegisterNUICallback('admin:bridges', function(_, cb)
     cb(data or { byTarget = {}, byNpc = {}, byZone = {}, byModel = {} })
 end)
 
+RegisterNUICallback('admin:bridgeStats', function(_, cb)
+    local data = lib.callback.await('clp_gmenu:admin:bridgeStats', false)
+    cb(data or { totals = {}, resources = {} })
+end)
+
 RegisterNUICallback('admin:storage', function(_, cb)
     local data = lib.callback.await('clp_gmenu:admin:storage', false)
     cb(data or {})
+end)
+
+RegisterNUICallback('admin:impound', function(_, cb)
+    local data = lib.callback.await('clp_gmenu:admin:impound', false)
+    cb(data or { lots = {}, perLot = {}, total = 0, owners = {}, totalFee = 0 })
 end)
 
 -- ============================================================

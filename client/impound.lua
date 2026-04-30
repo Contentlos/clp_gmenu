@@ -111,12 +111,59 @@ RegisterNetEvent('clp_gmenu:impound:sync', function(state)
     syncSpawns()
 end)
 
-RegisterNetEvent('clp_gmenu:impound:releaseConfirmed', function(plate, _lotId)
+-- ============================================================
+--  CINEMATIC RELEASE (C11)
+--  Wenn der Spieler ein Auto auskauft:
+--    1. Kamera schwenkt an `lot.releaseCam` (Position + look-Heading)
+--    2. Fahrzeug wird entriegelt + Hupe (kurz)
+--    3. Nach ~3.5s: Kamera-Fade zurueck zur Spielerperspektive
+-- ============================================================
+
+local function quatLookFrom(camCoords, heading)
+    -- Heading -> rotation Z. Pitch leicht nach unten (-12°) damit Auto im Bild
+    -- bleibt. Wir setzen Rotation als (pitch, roll, yaw).
+    return vector3(-12.0, 0.0, heading or 0.0)
+end
+
+local function cinematicRelease(plate, lotId)
+    local lot = Config.Impound.Lots[lotId]
+    local cam = lot and lot.releaseCam
+    local veh = spawnedVehs[plate]
+
+    -- Vehicle entriegeln (synchron, so dass es waehrend der Cam schon befahrbar ist)
+    if veh and DoesEntityExist(veh) then
+        SetVehicleDoorsLocked(veh, 1)
+        SetVehicleEngineOn(veh, true, true, false)
+        FreezeEntityPosition(veh, false)
+        StartVehicleHorn(veh, 600, joaat('NORMAL'), false)
+    end
+
+    if not cam then return end
+
+    local cc = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+    if cc == 0 then return end
+    SetCamCoord(cc, cam.x, cam.y, cam.z)
+    local rot = quatLookFrom(cam, cam.w or 0.0)
+    SetCamRot(cc, rot.x, rot.y, rot.z, 2)
+    SetCamFov(cc, 55.0)
+    SetCamActive(cc, true)
+    RenderScriptCams(true, true, 600, true, true)
+
+    SetTimeout(3500, function()
+        RenderScriptCams(false, true, 600, true, true)
+        DestroyCam(cc, false)
+    end)
+end
+
+RegisterNetEvent('clp_gmenu:impound:releaseConfirmed', function(plate, lotId)
     plate = plate and plate:upper() or ''
     recentlyReleased[plate] = GetGameTimer()
+    cinematicRelease(plate, lotId)
     -- Server sendet ohnehin direkt impound:sync hinterher; safety:
-    despawnVehicle(plate)
-    impState[plate] = nil
+    SetTimeout(900, function()
+        despawnVehicle(plate)
+        impState[plate] = nil
+    end)
 end)
 
 -- Beim Resource-Stop: alles aufraeumen

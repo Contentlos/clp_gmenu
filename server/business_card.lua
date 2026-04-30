@@ -129,10 +129,15 @@ RegisterNetEvent('clp_gmenu:identity:giveBusinessCard', function(receiverSrc)
         description = ok and 'Visitenkarte ueberreicht.' or 'Konnte Visitenkarte nicht uebergeben.',
     })
     if ok then
-        TriggerClientEvent('clp_gmenu:notify', receiverSrc, {
-            type = 'inform',
-            description = 'Du hast eine Visitenkarte erhalten.',
-        })
+        local meta = buildMetadata(src)
+        if meta then
+            TriggerClientEvent('clp_gmenu:businessCard:show', receiverSrc, meta)
+        else
+            TriggerClientEvent('clp_gmenu:notify', receiverSrc, {
+                type = 'inform',
+                description = 'Du hast eine Visitenkarte erhalten.',
+            })
+        end
     end
 end)
 
@@ -160,15 +165,7 @@ CreateThread(function()
             if not payload or not payload.item or payload.item.name ~= ITEM_NAME then return end
             local src = payload.source
             local meta = payload.item.metadata or {}
-            local desc = ('%s %s%s%s'):format(
-                meta.firstName or 'Unbekannt',
-                meta.lastName  or '',
-                meta.jobLabel and (' | ' .. meta.jobLabel) or '',
-                meta.phone    and (' | ' .. meta.phone) or ''
-            )
-            TriggerClientEvent('clp_gmenu:notify', src, {
-                type = 'inform', description = desc, duration = 7000,
-            })
+            TriggerClientEvent('clp_gmenu:businessCard:show', src, meta)
             return false        -- Item wird nicht verbraucht
         end, { itemFilter = { [ITEM_NAME] = true } })
     end)

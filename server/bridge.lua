@@ -295,4 +295,78 @@ RegisterNetEvent('clp_gmenu:bridge:registerAction', function(target, action)
     Bridge.registerAction(target, action)
 end)
 
+-- ============================================================
+--  STARTUP-ANKUENDIGUNG (D13 — Auto-Re-Register bei clp_gmenu Restart)
+--
+--  Wenn clp_gmenu (re)startet, sollen Drittanbieter-Resourcen ihre
+--  Bridge-Aktionen erneut registrieren. Wir feuern dafuer ein Event an
+--  alle laufenden Resourcen + lassen Drittanbieter eine Konvention
+--  benutzen:
+--      AddEventHandler('clp_gmenu:bridge:ready', function() reregister() end)
+--
+--  Zusaetzlich werden registrierte onResourceStart-Hooks fuer alle
+--  bereits-laufenden Resourcen einmalig aufgerufen, damit clp_gmenu-
+--  interne Module (NPCs, Zones, Identity, Impound, ...) sich selbst
+--  wieder einklinken koennen.
+-- ============================================================
+
+CreateThread(function()
+    -- Kurzer Delay damit andere Resourcen nach clp_gmenu's Start-Tick fertig
+    -- geladen sind und unser Event-Handler greift.
+    Wait(2500)
+
+    -- 1) Internen Hooks-Anker: einmal fuer JEDE laufende Resource feuern,
+    --    damit eingebaute Module (Bridge.onResourceStart) initialisieren.
+    local self = GetCurrentResourceName()
+    local count = GetNumResources()
+    for i = 0, count - 1 do
+        local res = GetResourceByFindIndex(i)
+        if res and res ~= self and GetResourceState(res) == 'started' then
+            for k = 1, #rereg do
+                local ok, err = pcall(rereg[k], res)
+                if not ok and Config and Config.Debug then
+                    print(('^3[clp_gmenu]^0 Bridge.ready replay error in %s: %s'):format(res, tostring(err)))
+                end
+            end
+        end
+    end
+
+    -- 2) Globaler Broadcast — Drittanbieter sollten in ihrem Code haben:
+    --      AddEventHandler('clp_gmenu:bridge:ready', function() ... end)
+    TriggerEvent('clp_gmenu:bridge:ready')
+    if Config and Config.Debug then
+        print('^2[clp_gmenu]^0 Bridge: ready broadcast versendet.')
+    end
+end)
+
+-- Stats fuer Admin Live-View (D14)
+function Bridge.getStats()
+    local function tally(map)
+        local resources, total = {}, 0
+        for _, list in pairs(map or {}) do
+            if type(list) == 'table' then
+                for _, action in pairs(list) do
+                    total = total + 1
+                    local res = (action and action._resource) or 'unknown'
+                    resources[res] = (resources[res] or 0) + 1
+                end
+            end
+        end
+        return total, resources
+    end
+    local tT, rT = tally(Bridge.byTarget)
+    local tN, rN = tally(Bridge.byNpc)
+    local tZ, rZ = tally(Bridge.byZone)
+    local tM, rM = tally(Bridge.byModel)
+    local merged = {}
+    for _, t in ipairs({ rT, rN, rZ, rM }) do
+        for k, v in pairs(t) do merged[k] = (merged[k] or 0) + v end
+    end
+    return {
+        totals    = { byTarget = tT, byNpc = tN, byZone = tZ, byModel = tM,
+                      total = tT + tN + tZ + tM },
+        resources = merged,
+    }
+end
+
 print('^2[clp_gmenu]^0 Bridge (Server) geladen.')

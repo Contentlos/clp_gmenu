@@ -198,10 +198,38 @@ Config.Impound = {
                 { coords = vector4(424.5, -1642.6, 28.3, 320.0) },
                 { coords = vector4(427.0, -1645.8, 28.3, 320.0) },
             },
-            payCoords = vector3(409.6, -1622.3, 29.3),    -- Hinweis fuer Auszahl-Marker (optional)
+            payCoords = vector3(409.6, -1622.3, 29.3),
+            -- Cinematic-Kamera nach Auskauf: Position + Look-Richtung
+            releaseCam = vector4(445.886, -1622.327, 37.313, 82.253),
         },
-        -- Weitere Hoefe einfach hier ergaenzen:
-        -- paleto = { label='...', slots={...} },
+        sandy_shores = {
+            label  = 'Abschlepphof Sandy Shores',
+            blip   = { sprite = 68, color = 47, scale = 0.85, label = 'Abschlepphof' },
+            slots  = {
+                { coords = vector4(1648.4, 3793.2, 34.6, 30.0) },
+                { coords = vector4(1651.1, 3796.4, 34.6, 30.0) },
+                { coords = vector4(1653.8, 3799.6, 34.6, 30.0) },
+                { coords = vector4(1656.5, 3802.8, 34.6, 30.0) },
+                { coords = vector4(1659.2, 3806.0, 34.6, 30.0) },
+                { coords = vector4(1661.9, 3809.2, 34.6, 30.0) },
+            },
+            payCoords  = vector3(1644.0, 3789.5, 34.7),
+            releaseCam = vector4(1670.0, 3795.0, 38.0, 210.0),
+        },
+        paleto_bay = {
+            label  = 'Abschlepphof Paleto Bay',
+            blip   = { sprite = 68, color = 47, scale = 0.85, label = 'Abschlepphof' },
+            slots  = {
+                { coords = vector4(-179.4, 6273.1, 31.5, 135.0) },
+                { coords = vector4(-176.4, 6270.1, 31.5, 135.0) },
+                { coords = vector4(-173.4, 6267.1, 31.5, 135.0) },
+                { coords = vector4(-170.4, 6264.1, 31.5, 135.0) },
+                { coords = vector4(-167.4, 6261.1, 31.5, 135.0) },
+                { coords = vector4(-164.4, 6258.1, 31.5, 135.0) },
+            },
+            payCoords  = vector3(-181.0, 6276.0, 31.6),
+            releaseCam = vector4(-155.0, 6253.0, 35.0, 315.0),
+        },
     },
     DefaultLot   = 'los_santos',
 }

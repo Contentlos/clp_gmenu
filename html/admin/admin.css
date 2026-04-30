@@ -780,3 +780,61 @@ textarea { min-height: 90px; resize: vertical; font-family: 'JetBrains Mono', mo
 }
 .storage-stat strong { display: block; font-size: 15px; color: var(--text); }
 .storage-stat small { color: var(--text-muted); font-size: 11px; }
+
+/* ============================================================
+   Phase 7: KPI / Impound / Themes / Bridge stats
+   ============================================================ */
+.kpi-row {
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px;
+}
+.kpi {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 120px;
+    flex: 0 0 auto;
+}
+.kpi .kpi-num { font-size: 22px; font-weight: 700; color: var(--accent, #00ffb4); }
+.kpi .kpi-lbl { font-size: 11px; opacity: .7; text-transform: uppercase; letter-spacing: .6px; }
+.kpi.mini { min-width: 0; padding: 6px 10px; display: inline-flex; gap: 6px; align-items: baseline; }
+.kpi.mini strong { color: var(--accent, #00ffb4); font-size: 14px; }
+.kpi.mini small  { opacity: .7; font-size: 11px; }
+
+.bridge-stats-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.bridge-stats-table th,
+.bridge-stats-table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 12px; }
+.bridge-stats-table th { text-align: left; opacity: .7; font-weight: 600; }
+
+.lot-card, .theme-card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+.lot-head, .theme-card-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.lot-meta { margin-left: auto; display: flex; gap: 10px; align-items: center; opacity: .8; font-size: 12px; }
+.btn-mini {
+    padding: 4px 10px; font-size: 12px; border-radius: 6px;
+}
+
+.theme-card .theme-preview {
+    height: 42px; border-radius: 8px; margin: 8px 0;
+    background:
+        linear-gradient(90deg, var(--accent, #00ffb4) 0%, var(--accent, #00ffb4) 30%, transparent 30%, transparent 60%, var(--outline, #ff3232) 60%, var(--outline, #ff3232) 90%, rgba(255,255,255,.06) 90%);
+    border: 1px solid rgba(255,255,255,.08);
+}
+
+.audit-filters {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin: 8px 0 12px;
+}
+.audit-filters .search-input { max-width: 180px; }
+
+.impound-defaults, .themes-form {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px 16px; margin-bottom: 12px;
+}

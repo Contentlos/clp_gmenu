@@ -18,3 +18,24 @@ RegisterNetEvent('clp_gmenu:notify', function(payload)
         EndTextCommandThefeedPostTicker(false, false)
     end
 end)
+
+-- B6: Visitenkarten-NUI Mockup statt Notify
+RegisterNetEvent('clp_gmenu:businessCard:show', function(meta)
+    if type(meta) ~= 'table' then return end
+    SendNUIMessage({
+        event = 'showBusinessCard',
+        meta  = {
+            firstName  = meta.firstName  or 'Unbekannt',
+            lastName   = meta.lastName   or '',
+            job        = meta.job        or '',
+            jobLabel   = meta.jobLabel   or '',
+            phone      = meta.phone      or '',
+            handedAt   = meta.handedAt   or '',
+            identifier = meta.identifier or '',
+        },
+    })
+end)
+
+RegisterNUICallback('businessCard:close', function(_, cb)
+    cb(1)
+end)

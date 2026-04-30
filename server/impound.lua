@@ -146,7 +146,89 @@ CreateThread(function()
     Wait(2000)
     ensureSchema()
     loadFromSql()
+    applyStoreOverrides()
     broadcastState()
+end)
+
+-- Admin-Panel speichert Impound-Tab Aenderungen unter `impound.*` im Store.
+-- Wir uebernehmen sie zur Laufzeit ohne Resource-Restart.
+function applyStoreOverrides()
+    if not GMenu.Store or not GMenu.Store.getSnapshot then return end
+    local snap = GMenu.Store.getSnapshot() or {}
+    local imp  = snap.impound
+    if type(imp) ~= 'table' then return end
+
+    if type(imp.defaultFee) == 'number' then Config.Impound.DefaultFee = imp.defaultFee end
+    if type(imp.minFee)     == 'number' then Config.Impound.MinFee = imp.minFee end
+    if type(imp.maxFee)     == 'number' then Config.Impound.MaxFee = imp.maxFee end
+    if type(imp.defaultLot) == 'string' and imp.defaultLot ~= '' then
+        Config.Impound.DefaultLot = imp.defaultLot
+    end
+    if type(imp.paymentAccount) == 'string' then
+        Config.Impound.PaymentAccount = imp.paymentAccount
+    end
+    if type(imp.releaseTimeoutSec) == 'number' then
+        Config.Impound.ReleaseTimeoutSec = imp.releaseTimeoutSec
+    end
+    if type(imp.interactDistance) == 'number' then
+        Config.Impound.InteractDistance = imp.interactDistance
+    end
+
+    -- Lots: kompletter Override (admin-managed map).
+    -- Format: imp.lots = { los_santos = { label, slots = { { x,y,z,h }, ... }, payCoords={x,y,z}, releaseCam={x,y,z,h} }, ... }
+    if type(imp.lots) == 'table' and next(imp.lots) ~= nil then
+        local merged = {}
+        -- Erstmal Defaults aus Config (so dass das vorhandene Los Santos Lot
+        -- nicht verloren geht wenn admin nur ein neues hinzufuegt).
+        for k, v in pairs(Config.Impound.Lots or {}) do merged[k] = v end
+        -- Admin overrides
+        for lotId, lot in pairs(imp.lots) do
+            if type(lot) == 'table' then
+                local slots = {}
+                if type(lot.slots) == 'table' then
+                    for i, s in ipairs(lot.slots) do
+                        if type(s) == 'table' and tonumber(s.x) and tonumber(s.y) and tonumber(s.z) then
+                            slots[#slots + 1] = {
+                                coords = vector4(s.x + 0.0, s.y + 0.0, s.z + 0.0, (s.h or 0.0) + 0.0),
+                            }
+                        end
+                    end
+                end
+                local pay = lot.payCoords
+                local cam = lot.releaseCam
+                merged[lotId] = {
+                    label  = lot.label or lotId,
+                    blip   = lot.blip or { sprite = 68, color = 47, scale = 0.85, label = lot.label or 'Abschlepphof' },
+                    slots  = slots,
+                    payCoords = (type(pay) == 'table' and tonumber(pay.x))
+                        and vector3(pay.x + 0.0, pay.y + 0.0, pay.z + 0.0) or nil,
+                    releaseCam = (type(cam) == 'table' and tonumber(cam.x))
+                        and vector4(cam.x + 0.0, cam.y + 0.0, cam.z + 0.0, (cam.h or 0.0) + 0.0) or nil,
+                }
+            elseif lot == false then
+                -- false / null loescht den Eintrag
+                merged[lotId] = nil
+            end
+        end
+        Config.Impound.Lots = merged
+    end
+
+    if Config and Config.Debug then
+        print('^2[clp_gmenu]^0 Impound: Store-Overrides angewendet.')
+    end
+end
+
+-- Live-Reload: wenn Admin Aenderungen am Impound-Pfad macht, neu anwenden.
+CreateThread(function()
+    Wait(2200)   -- nach dem ersten Apply
+    if GMenu.Store and GMenu.Store.subscribe then
+        GMenu.Store.subscribe(function(path, value, by, version)
+            if type(path) == 'string' and path:sub(1, 7) == 'impound' then
+                applyStoreOverrides()
+                broadcastState()
+            end
+        end)
+    end
 end)
 
 -- ============================================================
@@ -241,6 +323,53 @@ function Imp.list()
     local out = {}
     for _, e in pairs(impounded) do out[#out+1] = e end
     return out
+end
+
+-- Per-Owner-Statistik fuer das Admin-Panel (C12)
+function Imp.statsByOwner()
+    local out, totalFee = {}, 0
+    for _, e in pairs(impounded) do
+        local id = e.ownerIdentifier or '(unbekannt)'
+        out[id] = out[id] or { count = 0, totalFee = 0, lots = {} }
+        out[id].count = out[id].count + 1
+        out[id].totalFee = out[id].totalFee + (e.fee or 0)
+        out[id].lots[e.lotId] = (out[id].lots[e.lotId] or 0) + 1
+        totalFee = totalFee + (e.fee or 0)
+    end
+    return out, totalFee
+end
+
+-- Globale Snapshot fuer Admin Live-View
+function Imp.adminSnapshot()
+    local lots, perLot = {}, {}
+    for lotId, lot in pairs(Config.Impound.Lots or {}) do
+        lots[#lots + 1] = {
+            id    = lotId,
+            label = lot.label,
+            slots = lot.slots and #lot.slots or 0,
+        }
+        perLot[lotId] = 0
+    end
+    local total = 0
+    for _, e in pairs(impounded) do
+        perLot[e.lotId] = (perLot[e.lotId] or 0) + 1
+        total = total + 1
+    end
+    local owners, totalFee = Imp.statsByOwner()
+    return {
+        lots     = lots,
+        perLot   = perLot,
+        total    = total,
+        owners   = owners,
+        totalFee = totalFee,
+        defaults = {
+            DefaultFee     = Config.Impound.DefaultFee,
+            MinFee         = Config.Impound.MinFee,
+            MaxFee         = Config.Impound.MaxFee,
+            DefaultLot     = Config.Impound.DefaultLot,
+            PaymentAccount = Config.Impound.PaymentAccount,
+        },
+    }
 end
 
 -- ============================================================
