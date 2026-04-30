@@ -284,7 +284,6 @@ exports('removeAction',         function(id) return Bridge.removeAction(id) end)
 exports('registerNpcAction',    function(npcId, action) return Bridge.registerNpcAction(npcId, action) end)
 exports('registerZoneAction',   function(zoneName, action) return Bridge.registerZoneAction(zoneName, action) end)
 exports('registerModelAction',  function(model, action) return Bridge.registerModelAction(model, action) end)
-exports('registerModelAction',  function(model, action) return Bridge.registerModelAction(model, action) end)
 
 -- ============================================================
 --  EVENTS (for serverEvent style registration from other resources)

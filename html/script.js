@@ -532,8 +532,12 @@ function renderOptions(options) {
         empty.className = 'menu-empty';
         empty.textContent = I18n.t('menu.no_results');
         wrap.appendChild(empty);
+        Menu._visibleOptions = [];
         return;
     }
+
+    // Sichtbare (gefilterte) Liste fuer Tasten-Shortcuts merken
+    Menu._visibleOptions = filtered;
 
     const frag = document.createDocumentFragment();
     filtered.forEach((opt, idx) => {
@@ -794,7 +798,12 @@ document.addEventListener('keyup', (e) => {
     const isTyping = document.activeElement && document.activeElement.tagName === 'INPUT';
     if (Menu.visible && !isTyping && e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key, 10) - 1;
-        if (Menu.options[idx]) selectOption(Menu.options[idx].id);
+        // Auf die aktuell sichtbare (gefilterte) Liste mappen,
+        // sonst stimmt die Tastenbeschriftung nicht mit der Aktion ueberein.
+        const list = (Menu._visibleOptions && Menu._visibleOptions.length)
+            ? Menu._visibleOptions
+            : Menu.options;
+        if (list[idx]) selectOption(list[idx].id);
     }
 });
 

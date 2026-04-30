@@ -51,6 +51,7 @@ local KVP_KEYS = {
     enableSounds = 'clp_gmenu:enableSounds',
     showStats    = 'clp_gmenu:showVehicleStats',
     maxDistance  = 'clp_gmenu:maxDistance',
+    soundPreset  = 'clp_gmenu:soundPreset',
 }
 
 local function loadKvp()
@@ -59,6 +60,7 @@ local function loadKvp()
     s.uiColor      = GetResourceKvpString(KVP_KEYS.uiColor)      or nil
     s.outlineColor = GetResourceKvpString(KVP_KEYS.outlineColor) or nil
     s.markerColor  = GetResourceKvpString(KVP_KEYS.markerColor)  or nil
+    s.soundPreset  = GetResourceKvpString(KVP_KEYS.soundPreset)  or nil
 
     local sound    = GetResourceKvpInt(KVP_KEYS.enableSounds)
     s.enableSounds = sound ~= 0   -- default true

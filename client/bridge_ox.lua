@@ -356,17 +356,25 @@ exports('removeGlobalPlayer', function(name)
     if name then B.globals.player[name] = nil end
 end)
 
--- clp_target API: addGlobalPed (alias)
+-- clp_target API: addGlobalOption — registriert auf ALLE Target-Typen
 exports('addGlobalOption', function(data)
     if type(data) ~= 'table' then return end
     local name = data.name or ('gopt_' .. GetGameTimer())
     local opts = data.options and convertOptions(data.options) or convertOptions(data)
-    B.globals.ped[name] = { options = opts, distance = data.distance or 3.0 }
+    local entry = { options = opts, distance = data.distance or 3.0 }
+    B.globals.ped[name]     = entry
+    B.globals.vehicle[name] = entry
+    B.globals.object[name]  = entry
+    B.globals.player[name]  = entry
     return name
 end)
 
 exports('removeGlobalOption', function(name)
-    if name then B.globals.ped[name] = nil end
+    if not name then return end
+    B.globals.ped[name]     = nil
+    B.globals.vehicle[name] = nil
+    B.globals.object[name]  = nil
+    B.globals.player[name]  = nil
 end)
 
 -- ============================================================
