@@ -84,6 +84,23 @@ local function buildSeed()
         actions = actions,            -- Standard-Library (read-mostly im Editor)
 
         customActions = {},           -- vom Admin erstellte
+
+        -- Universal Framework (Phase 2):
+        defaults = U.deepCopy(Config.DefaultActionsSeed or {
+            player  = {},
+            ped     = {},
+            vehicle = {},
+            object  = {},
+            zone    = {},
+            self    = {},
+        }),
+        npcs    = U.deepCopy(Config.NPCsSeed or {}),
+        zones   = U.deepCopy(Config.ZonesSeed or {}),
+        identity = U.deepCopy(Config.IdentitySeed or {
+            shareJob       = false,
+            allowAdminLink = true,
+            nameplates     = true,
+        }),
     }
 end
 
@@ -136,6 +153,17 @@ local function normalize(d)
     d.jobs           = d.jobs or {}
     d.actions        = d.actions or {}
     d.customActions  = d.customActions or {}
+    d.defaults       = d.defaults or {
+        player  = {},
+        ped     = {},
+        vehicle = {},
+        object  = {},
+        zone    = {},
+        self    = {},
+    }
+    d.npcs           = d.npcs or {}
+    d.zones          = d.zones or {}
+    d.identity       = d.identity or { shareJob = false, allowAdminLink = true, nameplates = true }
     return d
 end
 
@@ -316,6 +344,31 @@ end
 
 function Store.getItems()
     return data.items
+end
+
+-- ============================================================
+--  DEFAULTS / NPCs / ZONES (Universal Framework)
+-- ============================================================
+
+--- Gibt die Default-Aktions-IDs zurueck, die jeder Spieler fuer einen Zieltyp hat.
+--- Schema in data: data.defaults = { player = { ... }, vehicle = { ... }, ... }
+function Store.getDefaults(targetType)
+    if not data or type(data.defaults) ~= 'table' then return {} end
+    local list = data.defaults[targetType]
+    if type(list) == 'table' then return list end
+    -- Fallback: 'player'-Defaults gelten auch fuer 'ped'
+    if targetType == 'ped' and type(data.defaults.player) == 'table' then
+        return data.defaults.player
+    end
+    return {}
+end
+
+function Store.getNpcs()
+    return data and data.npcs or {}
+end
+
+function Store.getZones()
+    return data and data.zones or {}
 end
 
 --- Liefert effektive Berechtigungen+Aktionen fuer Job+Rang inklusive Vererbung.

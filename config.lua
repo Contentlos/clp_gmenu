@@ -37,6 +37,7 @@ Config.MaxDistance       = 9.0    -- 8-10m wie gefordert (Spieler kann via Setti
 Config.IdleWaitMs        = 200    -- Loop-Wait wenn Spieler nichts anvisiert
 Config.ActiveWaitMs      = 0      -- Loop-Wait waehrend ein Target aktiv ist
 Config.HideWhenInVehicle = false  -- Optional: deaktiviere Targeting im Auto
+Config.TargetLockMs      = 250    -- Target-Lock (200-350ms) gegen Flackern
 -- Raycast ist jetzt konstant aktiv (kein Aktivierungs-Timeout mehr noetig)
 
 -- Action-Cache: Client cached Server-Antworten (Performance)
@@ -73,8 +74,8 @@ Config.SoundOnDeny   = { lib = 'HUD_FRONTEND_DEFAULT_SOUNDSET', name = 'ERROR' }
 -- ============================================================
 --  UI-DEFAULTS
 -- ============================================================
-Config.DefaultTheme    = 'glass'                                       -- glass|dark|neon|redcircle
-Config.AvailableThemes = { 'glass', 'dark', 'neon', 'redcircle' }
+Config.DefaultTheme    = 'glass'                                       -- glass|dark|neon|redcircle|minimal
+Config.AvailableThemes = { 'glass', 'dark', 'neon', 'redcircle', 'minimal' }
 Config.MenuAnchor      = 'right'                                       -- right|center|bottom
 Config.ShowVehicleStats = true                                         -- Header zeigt HP/Speed/Plate
 

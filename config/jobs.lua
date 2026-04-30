@@ -409,4 +409,71 @@ Config.ActionsSeed = {
     generic_notify   = { label = 'Notify senden',  icon = 'fa-message',       target = 'both',   handler = 'generic_notify' },
     generic_command  = { label = 'Command',        icon = 'fa-terminal',      target = 'both',   handler = 'generic_command', permission = 'canRunCommand' },
     generic_event    = { label = 'Event Trigger',  icon = 'fa-bolt',          target = 'both',   handler = 'generic_event' },
+
+    -- ============================================================
+    --  UNIVERSAL FRAMEWORK - DEFAULT ACTIONS (alle Spieler)
+    --  Diese Actions sind immer verfuegbar (siehe Config.DefaultActionsSeed).
+    -- ============================================================
+
+    -- Spieler-Defaults
+    universal_handshake   = { label = 'Hand geben',         icon = 'fa-handshake',   target = 'player',  handler = 'universal_handshake' },
+    universal_greet       = { label = 'Begruessen',         icon = 'fa-hand-wave',   target = 'player',  handler = 'universal_greet' },
+    universal_help_up     = { label = 'Aufhelfen',          icon = 'fa-hands-holding', target = 'player', handler = 'universal_help_up' },
+    universal_look_at     = { label = 'Anschauen',          icon = 'fa-eye',         target = 'player',  handler = 'universal_look_at' },
+    universal_card        = { label = 'Visitenkarte geben', icon = 'fa-id-card',     target = 'player',  handler = 'universal_card' },
+
+    -- Fahrzeug-Defaults
+    universal_engine      = { label = 'Motor an/aus',       icon = 'fa-power-off',   target = 'vehicle', handler = 'universal_engine',     distance = 3.0 },
+    universal_lock        = { label = 'Ab-/Aufschliessen',  icon = 'fa-lock',        target = 'vehicle', handler = 'universal_lock',       distance = 3.0 },
+    universal_doors       = { label = 'Tueren oeffnen',     icon = 'fa-door-open',   target = 'vehicle', handler = 'universal_doors',      distance = 3.0 },
+    universal_trunk       = { label = 'Kofferraum',         icon = 'fa-suitcase',    target = 'vehicle', handler = 'universal_trunk',      distance = 3.0 },
+    universal_hood        = { label = 'Motorhaube',         icon = 'fa-car-side',    target = 'vehicle', handler = 'universal_hood',       distance = 3.0 },
+    universal_inspect_veh = { label = 'Fahrzeug ansehen',   icon = 'fa-eye',         target = 'vehicle', handler = 'universal_inspect_veh' },
+
+    -- NPC-Defaults
+    universal_npc_talk    = { label = 'Reden',              icon = 'fa-comments',    target = 'ped',     handler = 'universal_npc_talk' },
+    universal_npc_look    = { label = 'Anschauen',          icon = 'fa-eye',         target = 'ped',     handler = 'universal_look_at' },
+
+    -- Objekt-Defaults
+    universal_obj_inspect = { label = 'Untersuchen',        icon = 'fa-magnifying-glass', target = 'object', handler = 'universal_obj_inspect' },
+    universal_obj_use     = { label = 'Benutzen',           icon = 'fa-hand',        target = 'object',  handler = 'universal_obj_use' },
+    universal_obj_pickup  = { label = 'Aufheben',           icon = 'fa-hand-grab-o', target = 'object',  handler = 'universal_obj_pickup' },
+
+    -- Zonen-Defaults (werden i.d.R. ueber Zone-Definition selbst geladen)
+    universal_zone_open   = { label = 'Oeffnen',            icon = 'fa-door-open',   target = 'zone',    handler = 'universal_zone_open' },
 }
+
+-- ============================================================
+--  DEFAULT ACTIONS SEED (gilt fuer alle Spieler, allen Jobs)
+-- ============================================================
+Config.DefaultActionsSeed = {
+    player  = { 'universal_handshake', 'universal_greet', 'universal_help_up', 'universal_look_at', 'universal_card' },
+    ped     = { 'universal_npc_talk', 'universal_npc_look' },
+    vehicle = { 'universal_engine', 'universal_lock', 'universal_doors', 'universal_trunk', 'universal_hood', 'universal_inspect_veh' },
+    object  = { 'universal_obj_inspect', 'universal_obj_use' },
+    zone    = {},
+    self    = {},
+}
+
+-- ============================================================
+--  NPCs / ZONES SEED (leer als Default - verwaltet via Admin UI)
+-- ============================================================
+Config.NPCsSeed  = {}
+Config.ZonesSeed = {}
+
+-- ============================================================
+--  IDENTITY DEFAULTS
+-- ============================================================
+Config.IdentityStrangerLabels = {
+    m = 'Fremder',
+    f = 'Fremde',
+    unknown = 'Unbekannte Person',
+}
+
+Config.IdentitySeed = {
+    shareJob       = false,    -- gleicher Job -> automatisch bekannt?
+    allowAdminLink = true,
+    nameplates     = true,     -- Ueberkopf-Namen rendern
+}
+
+Config.IdentityShareJob = false   -- Server-side toggle (mirror of seed)

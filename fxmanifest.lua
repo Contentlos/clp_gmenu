@@ -56,6 +56,7 @@ shared_scripts {
     'config.lua',
     'config/jobs.lua',
     'shared/utils.lua',
+    'shared/normalizer.lua',
 }
 
 -- ============================================================
@@ -69,9 +70,13 @@ server_scripts {
     'server/sql_store.lua',
     'server/store.lua',
     'server/permissions.lua',
+    'server/bridge.lua',           -- Server-Bridge fuer Drittanbieter-Aktionen
     'server/action_registry.lua',
+    'server/identity.lua',         -- Identity / Handshake / Known-Players
+    'server/npcs.lua',             -- NPC Manager (CRUD + Sync)
+    'server/zones.lua',            -- Zone Manager (CRUD + Sync)
     'server/main.lua',
-    'server/jobs/*.lua',       -- Alle Job-Handler automatisch einlesen
+    'server/jobs/*.lua',           -- Alle Job-Handler automatisch einlesen
     'server/admin.lua',
 }
 
@@ -80,9 +85,13 @@ server_scripts {
 -- ============================================================
 client_scripts {
     'client/main.lua',
+    'client/lib_bridge.lua',   -- ox_lib UI Bridge (notify/progress/context/inputDialog)
     'client/raycast.lua',
     'client/highlight.lua',
     'client/bridge_ox.lua',    -- ox_target Kompatibilitaets-Bridge (vor menu.lua!)
+    'client/zones.lua',        -- Zone-Erkennung (BoxZone/SphereZone/Polygon)
+    'client/npcs.lua',         -- NPC-Spawner + Tracking
+    'client/identity.lua',     -- Identity-Overlay + Handshake-Animationen
     'client/menu.lua',
     'client/actions.lua',
     'client/settings.lua',

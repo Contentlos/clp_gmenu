@@ -66,6 +66,10 @@ local function resolveTarget(payload)
         entity    = 0,
         isPlayer  = false,
         targetSrc = nil,
+        npcId     = payload.npcId,
+        zoneName  = payload.zoneName,
+        model     = payload.model,
+        coords    = payload.coords,
     }
 
     if netId and netId ~= 0 and NetworkGetEntityFromNetworkId then
@@ -73,7 +77,8 @@ local function resolveTarget(payload)
     end
 
     if target.entity ~= 0 and DoesEntityExist(target.entity) then
-        if GetEntityType(target.entity) == 1 then     -- Ped
+        local etype = GetEntityType(target.entity)
+        if etype == 1 then     -- Ped
             target.isPlayer = IsPedAPlayer(target.entity)
             if target.isPlayer then
                 target.type = 'player'
@@ -90,8 +95,11 @@ local function resolveTarget(payload)
             else
                 target.type = 'ped'    -- NPC/Ped
             end
-        elseif GetEntityType(target.entity) == 2 then -- Fahrzeug
+        elseif etype == 2 then -- Fahrzeug
             target.type = 'vehicle'
+        elseif etype == 3 then -- Objekt
+            target.type = 'object'
+            target.model = target.model or GetEntityModel(target.entity)
         end
     end
 
@@ -100,6 +108,11 @@ local function resolveTarget(payload)
         target.type = 'ped'
         target._pedCoords = payload.pedCoords
         target._pedModel  = payload.pedModel
+    end
+
+    -- Zone-Aktionen: kein Entity erforderlich
+    if payload.targetType == 'zone' and payload.zoneName then
+        target.type = 'zone'
     end
 
     return target
@@ -188,7 +201,11 @@ function Registry.execute(src, payload)
     else
         target = resolveTarget(payload)
         -- Entity muss existieren ODER es ist ein Ped mit Fallback-Koordinaten
-        if (not target.entity or target.entity == 0) and not target._pedCoords then
+        -- ODER ein Zone/Objekt-Target (entity-frei zulaessig).
+        local needsEntity = not (target.type == 'zone'
+                              or (target.type == 'object' and target.entity ~= 0)
+                              or target._pedCoords)
+        if needsEntity and (not target.entity or target.entity == 0) then
             return false, 'Ziel nicht aufloesbar'
         end
 
@@ -199,10 +216,11 @@ function Registry.execute(src, payload)
         end
     end
 
-    -- Zieltyp-Pruefung (Aktion erwartet: target = 'player'|'vehicle'|'ped'|'self'|'both')
-    if action.target and action.target ~= 'both' then
+    -- Zieltyp-Pruefung (Aktion erwartet: target = 'player'|'vehicle'|'ped'|'object'|'zone'|'self'|'both'|'any')
+    if action.target and action.target ~= 'both' and action.target ~= 'any' then
         local compatible = (action.target == target.type)
             or (action.target == 'player' and target.type == 'ped')
+            or (action.target == 'ped' and target.type == 'player')
         if not compatible then
             return false, ('Aktion erwartet %s, aber Ziel ist %s'):format(action.target, target.type)
         end
@@ -213,7 +231,11 @@ function Registry.execute(src, payload)
     if action.permission and not Perms.hasPermission(src, action.permission) then
         return false, 'Fehlende Berechtigung: ' .. action.permission
     end
-    if not Perms.hasAction(src, payload.actionId, target.type) then
+    if not Perms.hasAction(src, payload.actionId, target.type, {
+        npcId    = target.npcId,
+        zoneName = target.zoneName,
+        model    = target.model,
+    }) then
         return false, 'Aktion nicht deinem Job/Rang zugewiesen'
     end
 

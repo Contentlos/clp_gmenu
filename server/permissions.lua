@@ -34,6 +34,31 @@ function P.getJob(src)
     return { name = job.name, grade = job.grade or 0, label = job.label }
 end
 
+--- Liefert true, wenn der Spieler aktuell im Dienst ist.
+--- ESX hat keinen nativen Duty-Status; viele Server nutzen Metadaten oder Custom-State.
+--- Default-Verhalten: Spieler gilt als "im Dienst", wenn er einen Job hat, der NICHT
+--- 'unemployed'/'citizen' ist. Drittanbieter koennen dies via Export ueberschreiben.
+function P.isOnDuty(src)
+    if not src then return false end
+    local x = P.getXPlayer(src)
+    if not x then return false end
+
+    -- Bevorzugte Quelle: x.metadata.onduty (wird von vielen Frameworks gesetzt)
+    if x.getMeta then
+        local meta = x.getMeta('onduty')
+        if meta ~= nil then return meta == true end
+    end
+
+    -- StateBag (gesetzt durch /duty-Resourcen)
+    local sb = Player(src).state.onDuty
+    if sb ~= nil then return sb == true end
+
+    -- Fallback: Job ist nicht 'unemployed' oder 'citizen'
+    local job = P.getJob(src)
+    if not job then return false end
+    return job.name ~= 'unemployed' and job.name ~= 'citizen'
+end
+
 -- ============================================================
 --  ADMIN-PRUEFUNG
 -- ============================================================
@@ -122,9 +147,52 @@ end
 
 --- Prueft ob der Spieler eine Aktion ueberhaupt zugewiesen hat (unabhaengig von Berechtigung).
 --- 'ped' Zieltyp prueft ped-Liste UND player-Liste (Fallback, da player-Aktionen auf NPCs wirken).
-function P.hasAction(src, actionId, target)
+function P.hasAction(src, actionId, target, ctx)
     local eff = P.getEffective(src)
     if not eff or not eff.actions then return false end
+
+    -- Default-Aktionen: gelten fuer jeden Spieler
+    if Store.getDefaults then
+        local defaults = Store.getDefaults(target) or {}
+        if U.tableContains(defaults, actionId) then return true end
+        -- 'ped' faellt automatisch auf 'player'-Defaults zurueck
+        if target == 'ped' then
+            local pdef = Store.getDefaults('player') or {}
+            if U.tableContains(pdef, actionId) then return true end
+        end
+    end
+
+    -- NPC-spezifische Aktionen (ctx.npcId)
+    if ctx and ctx.npcId and GMenu.NPCs and GMenu.NPCs.getActionIds then
+        local npcActions = GMenu.NPCs.getActionIds(src, ctx.npcId) or {}
+        if U.tableContains(npcActions, actionId) then return true end
+    end
+
+    -- Zone-spezifische Aktionen (ctx.zoneName)
+    if ctx and ctx.zoneName and GMenu.Zones and GMenu.Zones.getActionIds then
+        local zActions = GMenu.Zones.getActionIds(src, ctx.zoneName) or {}
+        if U.tableContains(zActions, actionId) then return true end
+    end
+
+    -- Bridge-Aktionen
+    if GMenu.Bridge then
+        local list = GMenu.Bridge.getForTarget(target) or {}
+        for i = 1, #list do if list[i].id == actionId then return true end end
+        if ctx and ctx.npcId then
+            local nl = GMenu.Bridge.getForNpc(ctx.npcId) or {}
+            for i = 1, #nl do if nl[i].id == actionId then return true end end
+        end
+        if ctx and ctx.zoneName then
+            local zl = GMenu.Bridge.getForZone(ctx.zoneName) or {}
+            for i = 1, #zl do if zl[i].id == actionId then return true end end
+        end
+        if ctx and ctx.model and ctx.model ~= 0 then
+            local ml = GMenu.Bridge.getForModel(ctx.model) or {}
+            for i = 1, #ml do if ml[i].id == actionId then return true end end
+        end
+    end
+
+    -- Job-zugewiesene Aktionen
     if target == 'vehicle' then
         return U.tableContains(eff.actions.vehicle or {}, actionId)
     elseif target == 'player' then
@@ -134,11 +202,17 @@ function P.hasAction(src, actionId, target)
             or U.tableContains(eff.actions.player or {}, actionId)
     elseif target == 'self' then
         return U.tableContains(eff.actions.self or {}, actionId)
+    elseif target == 'object' then
+        return U.tableContains(eff.actions.object or {}, actionId)
+    elseif target == 'zone' then
+        return U.tableContains(eff.actions.zone or {}, actionId)
     else
         return U.tableContains(eff.actions.vehicle or {}, actionId)
             or U.tableContains(eff.actions.player or {}, actionId)
             or U.tableContains(eff.actions.ped or {}, actionId)
             or U.tableContains(eff.actions.self or {}, actionId)
+            or U.tableContains(eff.actions.object or {}, actionId)
+            or U.tableContains(eff.actions.zone or {}, actionId)
     end
 end
 

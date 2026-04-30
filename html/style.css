@@ -65,6 +65,15 @@ button { font-family: inherit; color: inherit; outline: none; }
     --border:      rgba(255, 44, 44, 0.25);
 }
 
+[data-theme="minimal"] {
+    --accent:      #FFFFFF;
+    --accent-rgb:  255, 255, 255;
+    --accent-glow: 0 0 6px rgba(255, 255, 255, 0.18);
+    --bg-1:        rgba(15, 15, 18, 0.55);
+    --bg-2:        rgba(22, 22, 26, 0.75);
+    --border:      rgba(255, 255, 255, 0.10);
+}
+
 /* ============================================================
    HEXAGON CLIP-PATH (flat-top "ribbon" Hexagon)
 ============================================================ */

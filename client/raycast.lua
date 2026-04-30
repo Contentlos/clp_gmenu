@@ -81,6 +81,11 @@ end
 --  ZIEL-AUFLOESUNG
 -- ============================================================
 
+local IsEntityAnObject = IsEntityAnObject
+
+-- Target priority: lower number wins in tiebreakers
+R.PRIORITY = { player = 1, ped = 2, vehicle = 3, object = 4, zone = 5 }
+
 local function resolveTarget(entity, hitCoords)
     if not entity or entity == 0 or not DoesEntityExist(entity) then return nil end
 
@@ -93,7 +98,8 @@ local function resolveTarget(entity, hitCoords)
     -- Fehler ausloesen (0x9f47b058362c84b5).
     local isVeh = IsEntityAVehicle(entity)
     local isPed = not isVeh and IsEntityAPed(entity)
-    if not isVeh and not isPed then return nil end
+    local isObj = (not isVeh and not isPed) and IsEntityAnObject(entity)
+    if not isVeh and not isPed and not isObj then return nil end
 
     local t = {
         entity = entity,
@@ -117,6 +123,12 @@ local function resolveTarget(entity, hitCoords)
         return t
     end
 
+    if isObj then
+        t.type   = 'object'
+        t.label  = 'Objekt'
+        return t
+    end
+
     -- isPed
     local myVeh = GetVehiclePedIsIn(myPed, false)
     if myVeh ~= 0 and entity == GetPedInVehicleSeat(myVeh, -1) then return nil end -- eigenen Fahrer ignorieren
@@ -126,12 +138,28 @@ local function resolveTarget(entity, hitCoords)
         t.type = 'player'
         local sid = NetworkGetPlayerIndexFromPed(entity)
         t.serverId = sid >= 0 and GetPlayerServerId(sid) or nil
-        local pname = sid >= 0 and GetPlayerName(sid) or 'Player'
+        -- Identity-aware Label (Fremder/Fremde oder echter Name)
+        local pname
+        if GMenu.Identity and GMenu.Identity.getDisplayNameForServerId and t.serverId then
+            pname = GMenu.Identity.getDisplayNameForServerId(t.serverId)
+        end
+        if not pname or pname == '' then
+            pname = sid >= 0 and GetPlayerName(sid) or 'Player'
+        end
         t.label = ('%s (#%s)'):format(pname or 'Player', t.serverId or '?')
     else
         -- NPC / Ped
         t.type = 'ped'
         t.label = 'NPC'
+
+        -- StateBag: Wenn von clp_gmenu NPC-Manager gespawnt, hat der Ped
+        -- die ID hinterlegt (siehe client/npcs.lua)
+        local stateOk, npcId = pcall(function()
+            return Entity(entity).state and Entity(entity).state.clp_npc_id
+        end)
+        if stateOk and type(npcId) == 'string' and npcId ~= '' then
+            t.npcId = npcId
+        end
 
         -- Fuer nicht-vernetzte NPCs: Netzwerk-Kontrolle anfordern
         if t.netId == 0 then
@@ -279,17 +307,44 @@ CreateThread(function()
                 end
             end
 
-            -- Wechsel-Erkennung
-            local prev = R.current
-            local prevId = prev and prev.entity or 0
-            local nextId = target and target.entity or 0
-            if prevId ~= nextId then
-                R.current = target
-                notifyChange(target, prev)
+            -- Zone-Fallback: kein Entity getroffen, aber im Zonenbereich?
+            if not target and GMenu.Zones and GMenu.Zones.getCurrent then
+                local zoneDef = GMenu.Zones.getCurrent()
+                if zoneDef then
+                    target = {
+                        entity   = 0,
+                        type     = 'zone',
+                        zoneName = zoneDef.name,
+                        label    = zoneDef.label or zoneDef.name,
+                        coords   = zoneDef.coords or GetEntityCoords(PlayerPedId()),
+                        netId    = 0,
+                        model    = 0,
+                        distance = 0.0,
+                    }
+                end
+            end
 
-                -- Ton bei neuem Ziel
-                if target and GMenu.SoundsEnabled() and Config.SoundOnTarget then
-                    PlaySoundFrontend(-1, Config.SoundOnTarget.name, Config.SoundOnTarget.lib, true)
+            -- Wechsel-Erkennung mit Target Lock (200-350ms hold)
+            -- (Verhindert Flackern bei kurzen Verlusten / Kameraruckeln)
+            local prev = R.current
+            local prevId = prev and (prev.entity ~= 0 and prev.entity or (prev.zoneName and ('zone:' .. prev.zoneName) or 0)) or 0
+            local nextId = target and (target.entity ~= 0 and target.entity or (target.zoneName and ('zone:' .. target.zoneName) or 0)) or 0
+            local now = GetGameTimer()
+            local LOCK_MS = (Config and Config.TargetLockMs) or 250
+
+            if prevId ~= nextId then
+                -- Falls Target verloren: kurz halten, falls Lock noch aktiv
+                if not target and prev and prev._lockedAt and (now - prev._lockedAt) < LOCK_MS then
+                    -- Keep prev a moment longer
+                else
+                    if target then target._lockedAt = now end
+                    R.current = target
+                    notifyChange(target, prev)
+
+                    -- Ton bei neuem Ziel
+                    if target and GMenu.SoundsEnabled() and Config.SoundOnTarget then
+                        PlaySoundFrontend(-1, Config.SoundOnTarget.name, Config.SoundOnTarget.lib, true)
+                    end
                 end
             else
                 -- Gleiches Ziel: Aktualisierung (Distanz, Statistiken)

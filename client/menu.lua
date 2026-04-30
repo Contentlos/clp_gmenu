@@ -136,8 +136,9 @@ function M.open_()
             netId = NetworkGetNetworkIdFromEntity(target.entity)
         end
     end
-    -- Spieler/Fahrzeuge MUESSEN eine netId haben; NPCs duerfen ohne (Fallback)
-    if (not netId or netId == 0) and target.type ~= 'ped' then
+    -- Spieler/Fahrzeuge MUESSEN eine netId haben; NPCs/Objekte/Zonen duerfen ohne (Fallback)
+    local needsNetId = (target.type == 'player' or target.type == 'vehicle')
+    if (not netId or netId == 0) and needsNetId then
         if GMenu.SoundsEnabled() and Config.SoundOnDeny then
             PlaySoundFrontend(-1, Config.SoundOnDeny.name, Config.SoundOnDeny.lib, true)
         end
@@ -191,6 +192,11 @@ function M.open_()
         targetType = target.type,
         pedCoords  = (target.type == 'ped') and target.coords or nil,
         pedModel   = (target.type == 'ped') and target.model or nil,
+        npcId      = target.npcId,                       -- clp_gmenu NPC-Manager ID
+        zoneName   = (target.type == 'zone') and target.zoneName or nil,
+        model      = (target.type == 'object') and target.model or nil,
+        coords     = target.coords,
+        distance   = target.distance,
     })
 end
 

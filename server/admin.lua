@@ -23,6 +23,11 @@ local EDITABLE_ROOTS = {
     customActions = true,
     items         = true,
     globals       = true,
+    -- Universal Framework
+    defaults      = true,
+    npcs          = true,
+    zones         = true,
+    identity      = true,
 }
 
 local function rootOf(path)
