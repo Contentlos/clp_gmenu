@@ -45,6 +45,8 @@
                 <button class="tab"        data-tab="npcs"><i class="fa-solid fa-user-tie"></i><span>NPCs</span></button>
                 <button class="tab"        data-tab="zones"><i class="fa-solid fa-draw-polygon"></i><span>Zones</span></button>
                 <button class="tab"        data-tab="bridges"><i class="fa-solid fa-bridge"></i><span>Bridges</span></button>
+                <button class="tab"        data-tab="impound"><i class="fa-solid fa-truck-arrow-right"></i><span>Impound</span></button>
+                <button class="tab"        data-tab="themes"><i class="fa-solid fa-palette"></i><span>Themes</span></button>
                 <button class="tab"        data-tab="identity"><i class="fa-solid fa-id-card"></i><span>Identity</span></button>
                 <button class="tab"        data-tab="storage"><i class="fa-solid fa-database"></i><span>Storage</span></button>
                 <button class="tab"        data-tab="audit"><i class="fa-solid fa-clock-rotate-left"></i><span>Audit</span></button>
@@ -211,9 +213,45 @@
                         Aktionen, die andere Resourcen ueber <code>exports.clp_gmenu:registerAction()</code> oder die
                         ox_target-Bridge eingespielt haben. Read-only — Quelle ist immer die jeweilige Resource.
                     </p>
+                    <div id="bridge-stats" class="bridge-stats"></div>
                     <div id="bridges-list" class="bridges-list">
                         <div class="empty-state"><p>Klick auf <strong>Aktualisieren</strong> um Bridges zu laden.</p></div>
                     </div>
+                </section>
+
+                <!-- ==================== IMPOUND TAB ==================== -->
+                <section class="tab-pane" data-pane="impound">
+                    <div class="panel-header">
+                        <h2>Impound (Abschlepphoefe)</h2>
+                        <div class="filter-group">
+                            <button class="btn-ghost" id="btn-refresh-impound"><i class="fa-solid fa-rotate"></i> Aktualisieren</button>
+                            <button class="btn-primary" id="btn-add-lot"><i class="fa-solid fa-plus"></i> Hof anlegen</button>
+                        </div>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Hoefe, Slots und Gebuehren live im Server. Aenderungen wirken sofort fuer alle Spieler.
+                    </p>
+
+                    <div id="impound-defaults" class="impound-defaults"></div>
+                    <div id="impound-stats"    class="impound-stats"></div>
+                    <div id="impound-lots"     class="impound-lots"></div>
+                    <div id="impound-owners"   class="impound-owners"></div>
+                </section>
+
+                <!-- ==================== THEMES TAB ==================== -->
+                <section class="tab-pane" data-pane="themes">
+                    <div class="panel-header">
+                        <h2>Themes</h2>
+                        <button class="btn-primary" id="btn-add-theme"><i class="fa-solid fa-plus"></i> Theme hinzufuegen</button>
+                    </div>
+                    <p class="info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Server-Default-Theme + benutzerdefinierte Themes (HEX-Akzent + Outline). Spieler koennen das Theme
+                        jederzeit selbst wechseln; hier setzt du nur den Default.
+                    </p>
+                    <div id="themes-form" class="themes-form"></div>
+                    <div id="themes-list" class="themes-list"></div>
                 </section>
 
                 <!-- ==================== IDENTITY TAB ==================== -->
@@ -254,6 +292,13 @@
                         <i class="fa-solid fa-circle-info"></i>
                         Letzte Aenderungen. Auch in <code>data/admin_audit.json</code> persistent gespeichert.
                     </p>
+                    <div class="audit-filters">
+                        <input type="text"   id="audit-filter-actor"  placeholder="Akteur (Name/ID)"  class="search-input">
+                        <input type="text"   id="audit-filter-action" placeholder="Aktion (z.B. patch / reset)" class="search-input">
+                        <input type="number" id="audit-filter-limit"  placeholder="Limit (max 500)"   class="search-input" value="200" min="10" max="500">
+                        <button class="btn-ghost" id="btn-apply-audit-filter"><i class="fa-solid fa-filter"></i> Filtern</button>
+                        <button class="btn-ghost" id="btn-clear-audit-filter"><i class="fa-solid fa-xmark"></i> Reset</button>
+                    </div>
                     <div id="audit-list" class="audit-list"></div>
                 </section>
 

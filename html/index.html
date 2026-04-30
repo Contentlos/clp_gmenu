@@ -168,6 +168,11 @@
                 </section>
 
                 <section>
+                    <h3><i class="fa-solid fa-volume-high"></i> Sound-Preset</h3>
+                    <div id="sound-preset-grid"></div>
+                </section>
+
+                <section>
                     <h3><i class="fa-solid fa-ruler"></i> Reichweite</h3>
                     <div class="slider-row">
                         <label>Max-Distanz: <span id="slider-distance-val">9</span>m</label>
@@ -217,6 +222,35 @@
     </div>
 
     <iframe id="admin-frame" class="hidden" src="admin/admin.html"></iframe>
+
+    <!-- B6: Visitenkarten-NUI -->
+    <div id="business-card-overlay" class="hidden" aria-hidden="true">
+        <div id="business-card" role="dialog" aria-label="Visitenkarte">
+            <div class="bc-header">
+                <i class="fa-solid fa-id-card"></i>
+                <span>Visitenkarte</span>
+                <button id="bc-close" class="bc-close" aria-label="Schliessen">&times;</button>
+            </div>
+            <div class="bc-body">
+                <div class="bc-avatar"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="bc-name">
+                    <div class="bc-firstname" id="bc-firstname">--</div>
+                    <div class="bc-lastname"  id="bc-lastname">--</div>
+                </div>
+                <div class="bc-row">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span id="bc-job">--</span>
+                </div>
+                <div class="bc-row">
+                    <i class="fa-solid fa-phone"></i>
+                    <span id="bc-phone">--</span>
+                </div>
+                <div class="bc-footer">
+                    <small id="bc-handed">--</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js?v=2.0.0"></script>
 </body>

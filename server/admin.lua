@@ -28,6 +28,9 @@ local EDITABLE_ROOTS = {
     npcs          = true,
     zones         = true,
     identity      = true,
+    -- Phase 7
+    impound       = true,    -- A1: Impound-Tab (Lots, Fees, Defaults)
+    themes        = true,    -- A2: Themes-Tab (custom accent colors)
 }
 
 local function rootOf(path)
@@ -70,9 +73,61 @@ lib.callback.register('clp_gmenu:admin:bootstrap', function(src)
     }
 end)
 
-lib.callback.register('clp_gmenu:admin:audit', function(src, limit)
+lib.callback.register('clp_gmenu:admin:audit', function(src, opts)
     if not Perms.isAdmin(src) then return {} end
-    return Perms.getAudit(limit or 100)
+    -- Backwards compat: opts kann eine Zahl sein (alte API) oder Tabelle.
+    local limit, filter
+    if type(opts) == 'number' then
+        limit = opts
+    elseif type(opts) == 'table' then
+        limit  = opts.limit or 200
+        filter = {
+            actor   = opts.actor   and tostring(opts.actor):lower() or nil,
+            action  = opts.action  and tostring(opts.action):lower() or nil,
+            since   = tonumber(opts.since),    -- unix timestamp
+            until_  = tonumber(opts.until_),
+        }
+    else
+        limit = 200
+    end
+    local raw = Perms.getAudit(limit) or {}
+    if not filter then return raw end
+
+    local out = {}
+    for i = 1, #raw do
+        local e = raw[i]
+        local pass = true
+        if filter.actor then
+            local s = tostring(e.actor or e.src or ''):lower()
+            if not s:find(filter.actor, 1, true) then pass = false end
+        end
+        if pass and filter.action then
+            local s = tostring(e.action or ''):lower()
+            if not s:find(filter.action, 1, true) then pass = false end
+        end
+        if pass and filter.since and e.ts and e.ts < filter.since then pass = false end
+        if pass and filter.until_ and e.ts and e.ts > filter.until_ then pass = false end
+        if pass then out[#out + 1] = e end
+    end
+    return out
+end)
+
+-- Phase 7: Impound Live-View (A1, C12)
+lib.callback.register('clp_gmenu:admin:impound', function(src)
+    if not Perms.isAdmin(src) then return nil end
+    if GMenu.Impound and GMenu.Impound.adminSnapshot then
+        return GMenu.Impound.adminSnapshot()
+    end
+    return { lots = {}, perLot = {}, total = 0, owners = {}, totalFee = 0 }
+end)
+
+-- Phase 7: Bridge-Stats (D14)
+lib.callback.register('clp_gmenu:admin:bridgeStats', function(src)
+    if not Perms.isAdmin(src) then return nil end
+    if GMenu.Bridge and GMenu.Bridge.getStats then
+        return GMenu.Bridge.getStats()
+    end
+    return { totals = {}, resources = {} }
 end)
 
 -- ============================================================

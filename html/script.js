@@ -40,6 +40,143 @@ const Settings = {
     visible: false,
 };
 
+// ============================================================
+//  LOKALISIERUNG (de/en/fallback)
+// ============================================================
+const I18N_STRINGS = {
+    de: {
+        'menu.empty':       'Keine Aktionen verfuegbar.',
+        'menu.search':      'Suchen...',
+        'menu.no_results':  'Keine passenden Aktionen.',
+        'footer.rank':      'Rang',
+        'settings.title':   'Einstellungen',
+        'settings.theme':   'Theme',
+        'settings.sound':   'Sound',
+        'settings.distance':'Maximale Distanz',
+    },
+    en: {
+        'menu.empty':       'No actions available.',
+        'menu.search':      'Search...',
+        'menu.no_results':  'No matching actions.',
+        'footer.rank':      'Rank',
+        'settings.title':   'Settings',
+        'settings.theme':   'Theme',
+        'settings.sound':   'Sound',
+        'settings.distance':'Max distance',
+    },
+};
+
+const I18n = {
+    locale: 'de',
+    setLocale(loc) {
+        if (I18N_STRINGS[loc]) this.locale = loc;
+    },
+    t(key, fallback) {
+        const dict = I18N_STRINGS[this.locale] || I18N_STRINGS.de;
+        return dict[key] || fallback || key;
+    },
+};
+
+// ============================================================
+//  SUBTILE SOUNDS (WebAudio - keine Asset-Files noetig)
+// ============================================================
+// Preset-Definitionen: jedes Preset hat fuer jeden Trigger eine Liste von Toenen.
+const SOUND_PRESETS = {
+    soft: {
+        open:   [{ f: 660, slideTo: 880, dur: 0.14, type: 'sine',     gain: 0.045 }],
+        close:  [{ f: 660, slideTo: 330, dur: 0.12, type: 'sine',     gain: 0.04  }],
+        hover:  [{ f: 1100,               dur: 0.05, type: 'triangle', gain: 0.018 }],
+        select: [{ f: 880, slideTo: 1320, dur: 0.10, type: 'sine',     gain: 0.06  }],
+        notify: [{ f: 740, slideTo: 980,  dur: 0.16, type: 'triangle', gain: 0.05  }],
+    },
+    crisp: {
+        open:   [{ f: 1200, dur: 0.05, type: 'square',  gain: 0.04 }, { f: 1800, dur: 0.05, type: 'square', gain: 0.03, delay: 0.06 }],
+        close:  [{ f: 800,  dur: 0.06, type: 'square',  gain: 0.04 }],
+        hover:  [{ f: 1400, dur: 0.025, type: 'square', gain: 0.012 }],
+        select: [{ f: 1600, slideTo: 2200, dur: 0.08, type: 'square', gain: 0.05 }],
+        notify: [{ f: 1000, dur: 0.07, type: 'square', gain: 0.04 }, { f: 1500, dur: 0.07, type: 'square', gain: 0.04, delay: 0.08 }],
+    },
+    retro: {
+        open:   [{ f: 440, slideTo: 660, dur: 0.18, type: 'sawtooth', gain: 0.05 }],
+        close:  [{ f: 660, slideTo: 220, dur: 0.16, type: 'sawtooth', gain: 0.05 }],
+        hover:  [{ f: 880, dur: 0.04, type: 'sawtooth', gain: 0.018 }],
+        select: [{ f: 523, dur: 0.08, type: 'sawtooth', gain: 0.05 }, { f: 784, dur: 0.08, type: 'sawtooth', gain: 0.05, delay: 0.09 }],
+        notify: [{ f: 660, slideTo: 990, dur: 0.2, type: 'sawtooth', gain: 0.05 }],
+    },
+    sci_fi: {
+        open:   [{ f: 220, slideTo: 1760, dur: 0.22, type: 'sine', gain: 0.05 }],
+        close:  [{ f: 1760, slideTo: 220, dur: 0.18, type: 'sine', gain: 0.045 }],
+        hover:  [{ f: 1320, dur: 0.04, type: 'sine', gain: 0.015 }],
+        select: [{ f: 440, slideTo: 1760, dur: 0.14, type: 'triangle', gain: 0.06 }],
+        notify: [{ f: 880, slideTo: 1760, dur: 0.18, type: 'triangle', gain: 0.05 }, { f: 660, dur: 0.05, type: 'sine', gain: 0.04, delay: 0.2 }],
+    },
+    off: {
+        open: [], close: [], hover: [], select: [], notify: [],
+    },
+};
+
+const Sound = {
+    enabled: true,
+    preset: 'soft',
+    ctx: null,
+    _ensure() {
+        if (!this.enabled) return null;
+        if (!this.ctx) {
+            try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (_) { return null; }
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+        return this.ctx;
+    },
+    setPreset(name) {
+        if (SOUND_PRESETS[name]) this.preset = name;
+    },
+    /**
+     * @param {Object} o {f, dur, type, gain, slideTo, attack, delay}
+     */
+    play(o) {
+        const ctx = this._ensure();
+        if (!ctx) return;
+        const t0 = ctx.currentTime + (o.delay || 0);
+        const dur = o.dur || 0.08;
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type = o.type || 'sine';
+        osc.frequency.setValueAtTime(o.f, t0);
+        if (o.slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(o.slideTo, t0 + dur);
+        }
+        const peak = (o.gain == null ? 0.05 : o.gain);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(peak, t0 + (o.attack || 0.005));
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.02);
+    },
+    _trigger(name) {
+        const preset = SOUND_PRESETS[this.preset] || SOUND_PRESETS.soft;
+        const tones = preset[name] || [];
+        for (const t of tones) this.play(t);
+    },
+    open()   { this._trigger('open'); },
+    close()  { this._trigger('close'); },
+    hover()  { this._trigger('hover'); },
+    select() { this._trigger('select'); },
+    notify() { this._trigger('notify'); },
+    /** Preview-Funktion fuer das Settings-Panel: Spielt eine Demo-Sequenz */
+    preview(presetName) {
+        const old = this.preset;
+        if (presetName) this.preset = presetName;
+        const wasEnabled = this.enabled;
+        this.enabled = true;
+        this._trigger('open');
+        setTimeout(() => this._trigger('hover'), 220);
+        setTimeout(() => this._trigger('select'), 380);
+        setTimeout(() => { this.preset = old; this.enabled = wasEnabled; }, 800);
+    },
+};
+
 const Colors = {
     ui:      '#00FFB4',
     outline: '#FF3232',
@@ -192,6 +329,9 @@ function openMenu(payload) {
     Menu.target  = payload.target  || null;
     Menu.options = payload.options || [];
 
+    if (typeof payload.sounds === 'boolean') Sound.enabled = payload.sounds;
+    if (payload.soundPreset) Sound.setPreset(payload.soundPreset);
+    if (payload.locale) I18n.setLocale(payload.locale);
     setTheme(payload.theme, payload.colors, payload.anchor);
     renderHeader(Menu.target);
     renderStats(payload.stats);
@@ -201,6 +341,7 @@ function openMenu(payload) {
     DOM.menuRoot.classList.remove('hidden');
     requestAnimationFrame(() => DOM.menuRoot.classList.add('visible'));
     Menu.visible = true;
+    Sound.open();
 }
 
 function closeMenu() {
@@ -208,6 +349,7 @@ function closeMenu() {
     DOM.menuRoot.classList.remove('visible');
     setTimeout(() => DOM.menuRoot.classList.add('hidden'), 220);
     Menu.visible = false;
+    Sound.close();
 }
 
 // ============================================================
@@ -332,6 +474,9 @@ function _getOptionEl() {
     return hex;
 }
 
+// Search-Filter (case-insensitive, label match)
+let _searchTerm = '';
+
 function renderOptions(options) {
     const wrap = DOM.menuOptions;
 
@@ -345,13 +490,57 @@ function renderOptions(options) {
     if (!options || options.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'menu-empty';
-        empty.textContent = 'Keine Aktionen verfuegbar.';
+        empty.textContent = I18n.t('menu.empty');
         wrap.appendChild(empty);
         return;
     }
 
+    // Suchleiste nur einblenden wenn >8 Optionen vorhanden
+    if (options.length > 8) {
+        const sb = document.createElement('div');
+        sb.className = 'menu-search';
+        sb.innerHTML = `
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="menu-search-input"
+                   placeholder="${I18n.t('menu.search')}"
+                   autocomplete="off" spellcheck="false" value="${_searchTerm}" />
+        `;
+        wrap.appendChild(sb);
+        // Async fokussieren damit der Layout-Pass durch ist
+        setTimeout(() => {
+            const inp = $('menu-search-input');
+            if (inp) {
+                inp.focus();
+                inp.addEventListener('input', () => {
+                    _searchTerm = inp.value || '';
+                    renderOptions(options);
+                });
+            }
+        }, 30);
+    } else {
+        _searchTerm = '';
+    }
+
+    // Filter
+    const term = _searchTerm.toLowerCase().trim();
+    const filtered = term
+        ? options.filter(o => (o.label || o.id || '').toLowerCase().includes(term))
+        : options;
+
+    if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'menu-empty';
+        empty.textContent = I18n.t('menu.no_results');
+        wrap.appendChild(empty);
+        Menu._visibleOptions = [];
+        return;
+    }
+
+    // Sichtbare (gefilterte) Liste fuer Tasten-Shortcuts merken
+    Menu._visibleOptions = filtered;
+
     const frag = document.createDocumentFragment();
-    options.forEach((opt, idx) => {
+    filtered.forEach((opt, idx) => {
         const hex = _getOptionEl();
         hex.style.setProperty('--i', idx);
         hex.dataset.id = opt.id;
@@ -361,6 +550,7 @@ function renderOptions(options) {
         hex._key.style.display = idx < 9 ? '' : 'none';
         // Event-Listener: einmal setzen via dataset (kein Lambda-Leak)
         hex.onclick = () => selectOption(opt.id);
+        hex.onmouseenter = () => Sound.hover();
         frag.appendChild(hex);
     });
     wrap.appendChild(frag);  // Ein einziger Reflow
@@ -388,6 +578,7 @@ function renderFooter(job) {
 // ============================================================
 
 function selectOption(id) {
+    Sound.select();
     postLua('select', { id });
 }
 
@@ -434,20 +625,55 @@ function wireColorQuick() {
 //  EINSTELLUNGEN (Vollansicht)
 // ============================================================
 
-const THEMES = ['glass', 'dark', 'neon', 'redcircle'];
+const THEMES = [
+    'glass', 'dark', 'neon', 'redcircle', 'minimal', 'custom',
+    'cyberpunk', 'midnight', 'sunset', 'royal', 'hologram', 'matrix',
+];
+
+// Theme-Preview Akzent (fuer Mini-Mockups in den Theme-Karten)
+const THEME_ACCENTS = {
+    glass:     { accent: '#00FFB4', bg: '#101418' },
+    dark:      { accent: '#00FFB4', bg: '#08090c' },
+    neon:      { accent: '#00E5FF', bg: '#0c1224' },
+    redcircle: { accent: '#FF2C2C', bg: '#1a0a0a' },
+    minimal:   { accent: '#FFFFFF', bg: '#15151a' },
+    custom:    { accent: '#00FFB4', bg: '#101418' },
+    cyberpunk: { accent: '#FF2D87', bg: '#1a0a22' },
+    midnight:  { accent: '#6E8BFF', bg: '#0a0e1c' },
+    sunset:    { accent: '#FF8C42', bg: '#1c0d08' },
+    royal:     { accent: '#C9A227', bg: '#16101e' },
+    hologram:  { accent: '#80FFEA', bg: '#06141a' },
+    matrix:    { accent: '#00FF7A', bg: '#020c06' },
+};
+
+const SOUND_PRESET_LIST = [
+    { id: 'soft',   label: 'Soft' },
+    { id: 'crisp',  label: 'Crisp' },
+    { id: 'retro',  label: 'Retro' },
+    { id: 'sci_fi', label: 'Sci-Fi' },
+    { id: 'off',    label: 'Aus' },
+];
 
 function openSettings(data) {
     DOM.settingsOverlay.classList.remove('hidden');
     requestAnimationFrame(() => DOM.settingsOverlay.classList.add('visible'));
     Settings.visible = true;
 
-    // Theme-Auswahl
+    // Theme-Auswahl als Mini-Mockup-Karten
     DOM.themeGrid.innerHTML = '';
     THEMES.forEach(t => {
+        const accents = THEME_ACCENTS[t] || THEME_ACCENTS.glass;
         const card = document.createElement('div');
         card.className = 'theme-card' + (t === data.theme ? ' active' : '');
         card.dataset.theme = t;
-        card.textContent = t;
+        card.innerHTML = `
+            <div class="theme-mini" style="--m-accent:${accents.accent};--m-bg:${accents.bg};">
+                <div class="theme-mini-bar"></div>
+                <div class="theme-mini-row"><span class="dot"></span><span class="bar"></span></div>
+                <div class="theme-mini-row"><span class="dot"></span><span class="bar short"></span></div>
+            </div>
+            <div class="theme-name">${t}</div>
+        `;
         card.addEventListener('click', () => {
             qsa('.theme-card').forEach(c => c.classList.remove('active'));
             card.classList.add('active');
@@ -455,6 +681,36 @@ function openSettings(data) {
         });
         DOM.themeGrid.appendChild(card);
     });
+
+    // Sound-Preset Auswahl (mit Preview-Buttons)
+    const soundGrid = $('sound-preset-grid');
+    if (soundGrid) {
+        const currentPreset = data.soundPreset || 'soft';
+        Sound.setPreset(currentPreset);
+        soundGrid.innerHTML = '';
+        SOUND_PRESET_LIST.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'sound-card' + (p.id === currentPreset ? ' active' : '');
+            card.dataset.preset = p.id;
+            card.innerHTML = `
+                <div class="sound-card-label">${p.label}</div>
+                <button class="sound-preview-btn" data-preview="${p.id}" title="Preview"><i class="fa-solid fa-play"></i></button>
+            `;
+            // Klick auf die Karte (aber nicht den Preview-Button) -> auswaehlen
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.sound-preview-btn')) return;
+                qsa('.sound-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                Sound.setPreset(p.id);
+            });
+            // Preview-Button: Tonsequenz abspielen
+            card.querySelector('.sound-preview-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                Sound.preview(p.id);
+            });
+            soundGrid.appendChild(card);
+        });
+    }
 
     // Aktuelle Werte setzen
     $('color-ui').value      = (data.uiColor      || Colors.ui).toLowerCase();
@@ -466,6 +722,7 @@ function openSettings(data) {
     $('color-marker-hex').textContent  = (data.markerColor  || Colors.marker).toUpperCase();
 
     $('opt-sounds').checked = data.enableSounds !== false;
+    Sound.enabled           = data.enableSounds !== false;
     $('opt-stats').checked  = data.showVehicleStats !== false;
 
     $('slider-distance').value           = data.maxDistance || 9;
@@ -497,6 +754,7 @@ function applySettingsPreview() {
 }
 
 function gatherSettings() {
+    const activeSound = qs('.sound-card.active');
     return {
         theme:        qs('.theme-card.active')?.dataset.theme || 'glass',
         uiColor:      $('color-ui').value,
@@ -505,11 +763,14 @@ function gatherSettings() {
         enableSounds: $('opt-sounds').checked,
         showStats:    $('opt-stats').checked,
         maxDistance:  parseFloat($('slider-distance').value) || 9,
+        soundPreset:  activeSound ? activeSound.dataset.preset : 'soft',
     };
 }
 
 function saveSettings() {
     const data = gatherSettings();
+    Sound.enabled = !!data.enableSounds;
+    Sound.setPreset(data.soundPreset);
     postLua('saveSettings', data);
     // Sofort lokal anwenden fuer schnelles Feedback
     applyAccent(data.uiColor);
@@ -533,9 +794,16 @@ document.addEventListener('keyup', (e) => {
         if (Settings.visible) return closeSettings();
         if (Menu.visible)     return doClose();
     }
-    if (Menu.visible && e.key >= '1' && e.key <= '9') {
+    // Digit-Shortcuts deaktivieren wenn Spieler in der Suchleiste tippt
+    const isTyping = document.activeElement && document.activeElement.tagName === 'INPUT';
+    if (Menu.visible && !isTyping && e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key, 10) - 1;
-        if (Menu.options[idx]) selectOption(Menu.options[idx].id);
+        // Auf die aktuell sichtbare (gefilterte) Liste mappen,
+        // sonst stimmt die Tastenbeschriftung nicht mit der Aktion ueberein.
+        const list = (Menu._visibleOptions && Menu._visibleOptions.length)
+            ? Menu._visibleOptions
+            : Menu.options;
+        if (list[idx]) selectOption(list[idx].id);
     }
 });
 
@@ -598,8 +866,52 @@ window.addEventListener('message', (event) => {
             }
             break;
         }
+        case 'showBusinessCard':
+            showBusinessCard(d.meta || {});
+            break;
+        case 'hideBusinessCard':
+            hideBusinessCard();
+            break;
     }
 });
+
+// ============================================================
+//  B6: Visitenkarten-NUI
+// ============================================================
+
+let _bcHideTimer = null;
+
+function showBusinessCard(meta) {
+    const overlay = document.getElementById('business-card-overlay');
+    if (!overlay) return;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val == null || val === '' ? '—' : val);
+    };
+    set('bc-firstname', meta.firstName || '—');
+    set('bc-lastname',  meta.lastName  || '');
+    const job = meta.jobLabel || meta.job || '—';
+    set('bc-job',       job);
+    set('bc-phone',     meta.phone     || '—');
+    set('bc-handed',    meta.handedAt ? ('uebergeben am ' + meta.handedAt) : '');
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (_bcHideTimer) clearTimeout(_bcHideTimer);
+    _bcHideTimer = setTimeout(hideBusinessCard, 7000);
+}
+
+function hideBusinessCard() {
+    const overlay = document.getElementById('business-card-overlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (_bcHideTimer) { clearTimeout(_bcHideTimer); _bcHideTimer = null; }
+    fetch(`https://${RES}/businessCard:close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+    }).catch(() => {});
+}
 
 // ============================================================
 //  IFRAME -> LUA (Bruecke fuer Admin-Editor)
@@ -619,10 +931,12 @@ window.addEventListener('message', (event) => {
     .then(result => {
         if (result === null || result === undefined) return;
         const cbToEvent = {
-            audit:   'auditList',
-            export:  'exportData',
-            bridges: 'bridgesList',
-            storage: 'storageStatus',
+            audit:       'auditList',
+            export:      'exportData',
+            bridges:     'bridgesList',
+            bridgeStats: 'bridgeStats',
+            storage:     'storageStatus',
+            impound:     'impoundStatus',
         };
         const evt = cbToEvent[d.cb];
         if (!evt) return;
@@ -643,6 +957,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     $('btn-close').addEventListener('click',    doClose);
     $('btn-settings').addEventListener('click', () => postLua('openSettings', {}));
+
+    const bcClose = document.getElementById('bc-close');
+    if (bcClose) bcClose.addEventListener('click', hideBusinessCard);
 
     $('btn-theme').addEventListener('click', () => {
         const root = DOM.menuRoot;

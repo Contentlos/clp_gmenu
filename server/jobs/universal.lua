@@ -58,6 +58,10 @@ Registry.register('universal_card', function(src, target, payload, action)
     if Identity then
         Identity.knowPlayer(src, target.targetSrc)
     end
+    -- Physische Visitenkarte (ox_inventory metadata) zusaetzlich uebergeben
+    if GMenu.BusinessCard and GMenu.BusinessCard.give then
+        GMenu.BusinessCard.give(src, target.targetSrc)
+    end
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = 'Visitenkarte uebergeben.' })
     return true
 end)
