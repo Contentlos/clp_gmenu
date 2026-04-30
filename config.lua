@@ -17,7 +17,7 @@ Config = {}
 --  ADMIN-EDITOR ZUGANG
 -- ============================================================
 -- Wer darf /gmenuadmin oeffnen?
-Config.AdminGroups   = { 'admin', 'superadmin' }    -- ESX-Group-Names
+Config.AdminGroups   = { 'owner', 'admin', 'superadmin' }    -- ESX-Group-Names
 Config.AdminAceCheck = 'command.gmenuadmin'         -- optional: zusaetzlich ACE
 Config.AdminCommand  = 'gmenuadmin'                  -- Command-Name fuer Editor
 
@@ -27,8 +27,9 @@ Config.SettingsCommand = 'gmenusettings'
 -- ============================================================
 --  KEYBINDS
 -- ============================================================
-Config.OpenKey  = 'G'        -- oeffnet Menue bei gueltigem Ziel
-Config.CloseKey = 'ESCAPE'   -- schliesst Menue (zusaetzlich zu G erneut druecken)
+Config.OpenKey     = 'G'      -- oeffnet Target-Menue (NUR wenn Ziel sichtbar)
+Config.SelfMenuKey = 'J'      -- oeffnet Self-Menue (eigener Charakter, kein Ziel)
+Config.CloseKey    = 'ESCAPE' -- schliesst Menue (zusaetzlich zu G erneut druecken)
 
 -- ============================================================
 --  RAYCAST / DISTANZ
@@ -74,17 +75,34 @@ Config.SoundOnDeny   = { lib = 'HUD_FRONTEND_DEFAULT_SOUNDSET', name = 'ERROR' }
 -- ============================================================
 --  UI-DEFAULTS
 -- ============================================================
-Config.DefaultTheme    = 'glass'                                       -- glass|dark|neon|redcircle|minimal|custom
-Config.AvailableThemes = { 'glass', 'dark', 'neon', 'redcircle', 'minimal', 'custom' }
+Config.DefaultTheme    = 'glass'
+Config.AvailableThemes = {
+    'glass', 'dark', 'neon', 'redcircle', 'minimal', 'custom',
+    -- Phase 6 neue Themes:
+    'cyberpunk', 'midnight', 'sunset', 'royal', 'hologram', 'matrix',
+}
+
+-- Sound-Preset (UI-Toene). Eingestellt im Settings-Panel,
+-- ueberschreibt die WebAudio-Toene des NUI-Layers.
+-- Optionen: 'soft' | 'crisp' | 'retro' | 'sci_fi' | 'off'
+Config.DefaultSoundPreset = 'soft'
+
+-- Lokalisierung: 'de' | 'en' (NUI-Strings, ladbar via locales/<code>.json)
+Config.Locale = 'de'
 Config.MenuAnchor      = 'right'                                       -- right|center|bottom
 Config.ShowVehicleStats = true                                         -- Header zeigt HP/Speed/Plate
 
 -- ============================================================
 --  SICHERHEIT
 -- ============================================================
-Config.RateLimitPerSec     = 4   -- max Aktionen / Sekunde / Spieler (normale Actions)
-Config.AdminRateLimitPerSec= 10  -- max Admin-Edits / Sekunde / Admin
+Config.RateLimitPerSec     = 4    -- max Aktionen / Sekunde / Spieler (normale Actions)
+Config.AdminRateLimitPerSec= 10   -- max Admin-Edits / Sekunde / Admin
 Config.MaxDistanceServer   = 12.0 -- Server-seitige Sanity (Anti-Teleport-Exploit)
+
+-- Per-Action-Cooldown: Aktionen koennen ein 'cooldown' (Sekunden) Feld setzen.
+-- Wird auf [Min, Max] geclamped, um Missbrauch zu vermeiden.
+Config.ActionCooldownMin   = 0.1   -- minimaler Cooldown
+Config.ActionCooldownMax   = 300.0 -- maximaler Cooldown (5 Minuten Hard-Cap)
 
 -- Whitelist fuer Custom-Actions (Admin-Editor)
 -- Custom-Actions koennen NUR Events aus dieser Liste feuern.
@@ -143,6 +161,50 @@ Config.UseSqlFallback = false
 --  DISCORD WEBHOOK (optional)
 -- ============================================================
 Config.AdminWebhook = ''      -- leer = aus. URL fuer Discord-Logs
+
+-- ============================================================
+--  IMPOUND (Standalone-Subsystem)
+--
+--  Kann von beliebigen Jobs/Skripten genutzt werden:
+--      exports.clp_gmenu:impoundVehicle({ plate='ABC123', fee=5000, lotId='los_santos' })
+--      exports.clp_gmenu:isVehicleImpounded(plate)        -> bool
+--      exports.clp_gmenu:releaseVehicle(plate)            -> bool
+--
+--  Die Fahrzeuge werden physisch im Hof gespawnt, Tueren verriegelt
+--  und Motor blockiert, bis der Besitzer (oder ein anderer Spieler)
+--  die Freigabegebuehr bezahlt hat.
+-- ============================================================
+Config.Impound = {
+    Enabled       = true,
+    DefaultFee    = 5000,                                -- Standardgebuehr in $
+    MinFee        = 100,
+    MaxFee        = 100000,
+    PaymentAccount = 'money',                             -- 'money' | 'bank' | 'black_money'
+    InteractDistance = 3.5,                               -- Distanz fuer Bezahl-Prompt
+    ReleaseTimeoutSec = 600,                              -- Auto wird nach Freigabe X Sek nicht erneut beschlagnahmt
+    PolicePersistEnabled = true,                          -- Welche Jobs duerfen impoundieren? (lookup, nur Hinweis)
+    AllowedJobs   = { 'police', 'sheriff', 'sasp', 'mechanic' },
+    Lots = {
+        los_santos = {
+            label  = 'Abschlepphof Los Santos',
+            blip   = { sprite = 68, color = 47, scale = 0.85, label = 'Abschlepphof' },
+            slots  = {
+                { coords = vector4(409.5, -1623.4, 28.3, 320.0) },
+                { coords = vector4(412.0, -1626.6, 28.3, 320.0) },
+                { coords = vector4(414.5, -1629.8, 28.3, 320.0) },
+                { coords = vector4(417.0, -1633.0, 28.3, 320.0) },
+                { coords = vector4(419.5, -1636.2, 28.3, 320.0) },
+                { coords = vector4(422.0, -1639.4, 28.3, 320.0) },
+                { coords = vector4(424.5, -1642.6, 28.3, 320.0) },
+                { coords = vector4(427.0, -1645.8, 28.3, 320.0) },
+            },
+            payCoords = vector3(409.6, -1622.3, 29.3),    -- Hinweis fuer Auszahl-Marker (optional)
+        },
+        -- Weitere Hoefe einfach hier ergaenzen:
+        -- paleto = { label='...', slots={...} },
+    },
+    DefaultLot   = 'los_santos',
+}
 
 -- ============================================================
 --  DEBUG

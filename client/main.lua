@@ -137,6 +137,14 @@ function GMenu.StatsEnabled()
     return GMenu.GetGlobalBool('showVehicleStats', Config.ShowVehicleStats)
 end
 
+function GMenu.GetSoundPreset()
+    if State.settings.soundPreset and State.settings.soundPreset ~= '' then
+        return State.settings.soundPreset
+    end
+    local g = State.store and State.store.globals or {}
+    return g.soundPreset or Config.DefaultSoundPreset or 'soft'
+end
+
 -- ============================================================
 --  STORE-SYNCHRONISIERUNG
 -- ============================================================

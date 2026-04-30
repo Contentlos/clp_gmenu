@@ -231,6 +231,8 @@ function M._finishOpen(target, result, netId)
         anchor = (GMenu.State.store and GMenu.State.store.globals and GMenu.State.store.globals.menuAnchor) or Config.MenuAnchor,
         theme  = GMenu.GetTheme(),
         sounds = GMenu.SoundsEnabled() and true or false,
+        soundPreset = GMenu.GetSoundPreset and GMenu.GetSoundPreset() or 'soft',
+        locale = (Config and Config.Locale) or 'de',
         colors = {
             ui = U.rgbToHex(GMenu.GetColor('ui')),
             outline = U.rgbToHex(GMenu.GetColor('outline')),
@@ -379,9 +381,10 @@ end)
 --  KEYBIND
 -- ============================================================
 
+-- Target-Menue (G): nur wenn ein Ziel da ist; KEIN Fallback auf Self-Menu
 lib.addKeybind({
     name = 'clp_gmenu_open',
-    description = 'Interaktionsmenue oeffnen',
+    description = 'Interaktionsmenue oeffnen (Ziel)',
     defaultKey = Config.OpenKey or 'G',
     defaultMapper = 'keyboard',
     onPressed = function()
@@ -409,16 +412,30 @@ lib.addKeybind({
                     return
                 end
             end
-            -- Kein Target -> Self-Menu oeffnen (falls aktiviert)
-            if not M.open and Config.SelfMenuEnabled then
-                M.openSelf_()
-                return
-            end
-            -- Deny-Sound
+            -- Kein Target gefunden: leiser Deny-Sound (kein Self-Menu hier)
             if not M.open and GMenu.SoundsEnabled() and Config.SoundOnDeny then
                 PlaySoundFrontend(-1, Config.SoundOnDeny.name, Config.SoundOnDeny.lib, true)
             end
         end)
+    end,
+})
+
+-- Self-Menue (J): unabhaengig vom Target, kein Latenz-Fallback
+lib.addKeybind({
+    name = 'clp_gmenu_self',
+    description = 'Self-Menue oeffnen (eigener Charakter)',
+    defaultKey = Config.SelfMenuKey or 'J',
+    defaultMapper = 'keyboard',
+    onPressed = function()
+        if IsPauseMenuActive() then return end
+        if IsNuiFocused() and not M.open then return end
+        if not Config.SelfMenuEnabled then return end
+
+        if M.open then
+            M.close_()
+            return
+        end
+        M.openSelf_()
     end,
 })
 

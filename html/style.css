@@ -82,6 +82,72 @@ button { font-family: inherit; color: inherit; outline: none; }
     --border:      rgba(var(--accent-rgb), 0.18);
 }
 
+/* ===== Phase 6 — Neue Themes ===== */
+
+[data-theme="cyberpunk"] {
+    --accent:      #FF2D87;
+    --accent-rgb:  255, 45, 135;
+    --accent-glow: 0 0 30px rgba(255, 45, 135, 0.7);
+    --bg-1:        rgba(22, 8, 28, 0.7);
+    --bg-2:        rgba(34, 14, 44, 0.86);
+    --bg-3:        rgba(40, 18, 50, 0.95);
+    --border:      rgba(255, 45, 135, 0.28);
+    --text:        #ffe6f3;
+}
+
+[data-theme="midnight"] {
+    --accent:      #6E8BFF;
+    --accent-rgb:  110, 139, 255;
+    --accent-glow: 0 0 22px rgba(110, 139, 255, 0.5);
+    --bg-1:        rgba(8, 12, 24, 0.78);
+    --bg-2:        rgba(12, 18, 36, 0.92);
+    --bg-3:        rgba(18, 24, 42, 0.97);
+    --border:      rgba(110, 139, 255, 0.18);
+}
+
+[data-theme="sunset"] {
+    --accent:      #FF8C42;
+    --accent-rgb:  255, 140, 66;
+    --accent-glow: 0 0 24px rgba(255, 140, 66, 0.55);
+    --bg-1:        rgba(28, 14, 8, 0.62);
+    --bg-2:        rgba(48, 22, 14, 0.82);
+    --bg-3:        rgba(60, 28, 18, 0.94);
+    --border:      rgba(255, 140, 66, 0.22);
+}
+
+[data-theme="royal"] {
+    --accent:      #C9A227;
+    --accent-rgb:  201, 162, 39;
+    --accent-glow: 0 0 22px rgba(201, 162, 39, 0.55);
+    --bg-1:        rgba(20, 14, 30, 0.72);
+    --bg-2:        rgba(28, 20, 44, 0.88);
+    --bg-3:        rgba(36, 24, 52, 0.96);
+    --border:      rgba(201, 162, 39, 0.25);
+}
+
+[data-theme="hologram"] {
+    --accent:      #80FFEA;
+    --accent-rgb:  128, 255, 234;
+    --accent-glow: 0 0 36px rgba(128, 255, 234, 0.65);
+    --bg-1:        rgba(6, 18, 22, 0.45);
+    --bg-2:        rgba(10, 26, 34, 0.6);
+    --bg-3:        rgba(14, 32, 42, 0.78);
+    --border:      rgba(128, 255, 234, 0.35);
+    --blur:        24px;
+}
+
+[data-theme="matrix"] {
+    --accent:      #00FF7A;
+    --accent-rgb:  0, 255, 122;
+    --accent-glow: 0 0 26px rgba(0, 255, 122, 0.7);
+    --bg-1:        rgba(2, 12, 6, 0.85);
+    --bg-2:        rgba(4, 18, 10, 0.94);
+    --bg-3:        rgba(6, 22, 12, 0.98);
+    --border:      rgba(0, 255, 122, 0.3);
+    --text:        #d6ffd6;
+    --text-dim:    #5cb877;
+}
+
 /* ============================================================
    HEXAGON CLIP-PATH (flat-top "ribbon" Hexagon)
 ============================================================ */
@@ -891,4 +957,165 @@ input[type="range"]::-webkit-slider-thumb {
     #menu-root { width: 380px; }
     .hex-option { height: 50px; }
     .hex-label { font-size: 12px; }
+}
+
+/* ============================================================
+   PHASE 6 — THEME PREVIEW CARDS / SOUND PRESETS / SEARCH BAR
+============================================================ */
+
+#theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+.theme-card {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+}
+
+.theme-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--accent-rgb), 0.5);
+}
+
+.theme-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.25), var(--accent-glow);
+}
+
+.theme-mini {
+    height: 60px;
+    border-radius: 6px;
+    background: var(--m-bg, #101418);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.theme-mini-bar {
+    height: 4px;
+    width: 50%;
+    border-radius: 2px;
+    background: var(--m-accent, #00FFB4);
+    box-shadow: 0 0 10px var(--m-accent, #00FFB4);
+}
+
+.theme-mini-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.theme-mini .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--m-accent, #00FFB4);
+    flex-shrink: 0;
+}
+
+.theme-mini .bar {
+    height: 4px;
+    width: 80%;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.theme-mini .bar.short { width: 50%; }
+
+.theme-name {
+    font-size: 11px;
+    text-align: center;
+    color: var(--text-dim);
+    text-transform: capitalize;
+    letter-spacing: 0.04em;
+}
+
+.theme-card.active .theme-name {
+    color: var(--accent);
+}
+
+/* === Sound preset cards === */
+#sound-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+.sound-card {
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.sound-card:hover { transform: translateY(-1px); border-color: rgba(var(--accent-rgb), 0.4); }
+.sound-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+.sound-card-label { font-weight: 600; color: var(--text); }
+.sound-card.active .sound-card-label { color: var(--accent); }
+
+.sound-preview-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-3);
+    color: var(--accent);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 100ms ease, background 100ms ease;
+}
+.sound-preview-btn:hover {
+    background: var(--accent);
+    color: var(--bg-3);
+    transform: scale(1.08);
+}
+
+/* === Menu search bar (>8 options) === */
+.menu-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin-bottom: 4px;
+    border-radius: 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+}
+.menu-search i { color: var(--text-dim); }
+.menu-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    pointer-events: auto;
+}
+.menu-search:focus-within {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.18);
 }

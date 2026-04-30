@@ -21,6 +21,7 @@ local function buildSettingsPayload()
         enableSounds     = GMenu.SoundsEnabled(),
         showVehicleStats = GMenu.StatsEnabled(),
         maxDistance      = GMenu.GetMaxDistance(),
+        soundPreset      = GMenu.GetSoundPreset and GMenu.GetSoundPreset() or 'soft',
     }
 end
 
@@ -79,6 +80,11 @@ RegisterNUICallback('saveSettings', function(data, cb)
     if type(data.enableSounds) == 'boolean' then GMenu.SaveKvp('enableSounds', data.enableSounds) end
     if type(data.showStats)    == 'boolean' then GMenu.SaveKvp('showStats',    data.showStats)    end
 
+    -- Sound-Preset
+    if type(data.soundPreset) == 'string' and #data.soundPreset <= 24 then
+        GMenu.SaveKvp('soundPreset', data.soundPreset)
+    end
+
     -- Distance
     local d = tonumber(data.maxDistance)
     if d and d >= 5.0 and d <= 12.0 then
@@ -96,7 +102,8 @@ RegisterNUICallback('resetSettings', function(_, cb)
     -- Lokale KVPs loeschen
     for _, key in ipairs({ 'clp_gmenu:theme', 'clp_gmenu:uiColor', 'clp_gmenu:outlineColor',
                             'clp_gmenu:markerColor', 'clp_gmenu:enableSounds',
-                            'clp_gmenu:showVehicleStats', 'clp_gmenu:maxDistance' }) do
+                            'clp_gmenu:showVehicleStats', 'clp_gmenu:maxDistance',
+                            'clp_gmenu:soundPreset' }) do
         DeleteResourceKvp(key)
     end
     -- Lokalen Cache leeren
