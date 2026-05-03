@@ -79,6 +79,8 @@ local function buildSeed()
             enableSounds        = Config.EnableSounds,
             showVehicleStats    = Config.ShowVehicleStats,
             menuAnchor          = Config.MenuAnchor,
+            -- Object-Marker (live im Admin-Panel editierbar, persistiert in jobs.json)
+            objectMarkers       = U.deepCopy(Config.ObjectMarkers or {}),
         },
 
         jobs    = jobs,
@@ -155,6 +157,17 @@ local function normalize(d)
     d._lastModifiedBy= d._lastModifiedBy or 'system'
     d.items          = d.items or {}
     d.globals        = d.globals or {}
+    -- Object-Marker Defaults: einzelne Felder mergen, damit existierende User-Settings
+    -- bestehen bleiben und nur fehlende Schluessel mit Config-Defaults gefuellt werden.
+    do
+        local defaults = Config.ObjectMarkers or {}
+        d.globals.objectMarkers = d.globals.objectMarkers or {}
+        for k, v in pairs(defaults) do
+            if d.globals.objectMarkers[k] == nil then
+                d.globals.objectMarkers[k] = v
+            end
+        end
+    end
     d.jobs           = d.jobs or {}
     d.actions        = d.actions or {}
     d.customActions  = d.customActions or {}

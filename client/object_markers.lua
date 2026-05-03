@@ -49,22 +49,33 @@ OM._current = nil   -- aktives Ziel (innerhalb activationDistance)
 --  CONFIG-ZUGRIFF (live-reload aware)
 -- ============================================================
 
+--- Korrekte "or"-Logik fuer Booleans (Lua's `cond and a or b` bricht, wenn a=false).
+local function pickBool(override, base, fallback)
+    if override ~= nil then return override and true or false end
+    if base     ~= nil then return base     and true or false end
+    return fallback and true or false
+end
+
+local function pickNum(override, base, fallback)
+    return override or base or fallback
+end
+
 local function cfg()
     local g = GMenu.State and GMenu.State.store and GMenu.State.store.globals or {}
     local base = Config.ObjectMarkers or {}
     -- Globals duerfen einzelne Felder ueberschreiben (Admin-Panel)
     local override = g.objectMarkers or {}
     return {
-        enabled            = (override.enabled            ~= nil) and override.enabled            or base.enabled,
-        markerType         = override.markerType          or base.markerType         or 2,
-        markerScale        = override.markerScale         or base.markerScale        or 0.35,
-        drawDistance       = override.drawDistance        or base.drawDistance       or 8.0,
-        activationDistance = override.activationDistance  or base.activationDistance or 1.8,
-        bobbing            = (override.bobbing            ~= nil) and override.bobbing            or base.bobbing,
-        yOffset            = override.yOffset             or base.yOffset            or 1.1,
-        scanRadius         = override.scanRadius          or base.scanRadius         or 12.0,
-        scanIntervalIdle   = override.scanIntervalIdle    or base.scanIntervalIdle   or 600,
-        scanIntervalActive = override.scanIntervalActive  or base.scanIntervalActive or 200,
+        enabled            = pickBool(override.enabled, base.enabled, true),
+        markerType         = pickNum(override.markerType,         base.markerType,         2),
+        markerScale        = pickNum(override.markerScale,        base.markerScale,        0.35),
+        drawDistance       = pickNum(override.drawDistance,       base.drawDistance,       8.0),
+        activationDistance = pickNum(override.activationDistance, base.activationDistance, 1.8),
+        bobbing            = pickBool(override.bobbing, base.bobbing, true),
+        yOffset            = pickNum(override.yOffset,            base.yOffset,            1.1),
+        scanRadius         = pickNum(override.scanRadius,         base.scanRadius,         12.0),
+        scanIntervalIdle   = pickNum(override.scanIntervalIdle,   base.scanIntervalIdle,   600),
+        scanIntervalActive = pickNum(override.scanIntervalActive, base.scanIntervalActive, 200),
     }
 end
 

@@ -856,6 +856,7 @@ function renderGlobals() {
     const wrap = $('globals-form');
     if (!wrap || !State.snapshot) return;
     const g = State.snapshot.globals || {};
+    const om = g.objectMarkers || {};
 
     wrap.innerHTML = `
         <div class="form-row">
@@ -927,6 +928,49 @@ function renderGlobals() {
                 ${['de','en'].map(l => `<option value="${l}" ${(g.defaultLocale || 'de') === l ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
         </div>
+
+        <div class="form-section-title">Object-Marker (Props)</div>
+        <div class="form-row">
+            <label>Aktiviert</label>
+            <label class="toggle-mini"><input type="checkbox" id="g-om-enabled" ${(om.enabled !== false) ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
+        <div class="form-row">
+            <label>Marker-Typ</label>
+            <select id="g-om-type">
+                ${[
+                    {v:1,  l:'1 - Boden-Kreis'},
+                    {v:2,  l:'2 - Pfeil (Standard)'},
+                    {v:20, l:'20 - Chevron-Up'},
+                    {v:25, l:'25 - Ring-Flat'},
+                    {v:27, l:'27 - Ring-Hoch'},
+                    {v:6,  l:'6 - Auswahl-Stern'},
+                ].map(o => `<option value="${o.v}" ${Number(om.markerType || 2) === o.v ? 'selected' : ''}>${o.l}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-row">
+            <label>Marker-Skala: <span id="g-om-scale-val">${(om.markerScale || 0.35).toFixed(2)}</span></label>
+            <input type="range" id="g-om-scale" min="0.10" max="1.50" step="0.05" value="${om.markerScale || 0.35}">
+        </div>
+        <div class="form-row">
+            <label>Hoehe ueber Prop (yOffset): <span id="g-om-yoff-val">${(om.yOffset || 1.1).toFixed(2)}</span> m</label>
+            <input type="range" id="g-om-yoff" min="0.0" max="3.0" step="0.05" value="${om.yOffset || 1.1}">
+        </div>
+        <div class="form-row">
+            <label>Marker-Sicht-Distanz: <span id="g-om-draw-val">${(om.drawDistance || 8).toFixed(1)}</span> m</label>
+            <input type="range" id="g-om-draw" min="2" max="20" step="0.5" value="${om.drawDistance || 8}">
+        </div>
+        <div class="form-row">
+            <label>Aktivierungs-Distanz: <span id="g-om-act-val">${(om.activationDistance || 1.8).toFixed(2)}</span> m</label>
+            <input type="range" id="g-om-act" min="0.5" max="5.0" step="0.1" value="${om.activationDistance || 1.8}">
+        </div>
+        <div class="form-row">
+            <label>Scan-Radius: <span id="g-om-scan-val">${(om.scanRadius || 12).toFixed(1)}</span> m</label>
+            <input type="range" id="g-om-scan" min="4" max="30" step="1" value="${om.scanRadius || 12}">
+        </div>
+        <div class="form-row">
+            <label>Wippen (Bobbing)</label>
+            <label class="toggle-mini"><input type="checkbox" id="g-om-bob" ${om.bobbing !== false ? 'checked' : ''}><span class="slider"></span></label>
+        </div>
     `;
 
     const wireColor = (id, key) => {
@@ -960,6 +1004,44 @@ function renderGlobals() {
     $('g-stats').addEventListener('change',   e => { patchPath('globals.showVehicleStats',   e.target.checked); g.showVehicleStats = e.target.checked; });
     $('g-sound-preset') && $('g-sound-preset').addEventListener('change', e => { patchPath('globals.defaultSoundPreset', e.target.value); g.defaultSoundPreset = e.target.value; });
     $('g-locale')       && $('g-locale').addEventListener('change',       e => { patchPath('globals.defaultLocale',      e.target.value); g.defaultLocale      = e.target.value; });
+
+    // ---- Object-Marker (Props) ----
+    const wireOm = (id, key, parser, formatter) => {
+        const el = $(`g-om-${id}`);
+        if (!el) return;
+        const valEl = $(`g-om-${id}-val`);
+        if (valEl) {
+            el.addEventListener('input', e => {
+                valEl.textContent = formatter ? formatter(e.target.value) : e.target.value;
+            });
+        }
+        el.addEventListener('change', e => {
+            const raw = parser ? parser(e.target.value) : e.target.value;
+            patchPath('globals.objectMarkers.' + key, raw);
+            g.objectMarkers = g.objectMarkers || {};
+            g.objectMarkers[key] = raw;
+        });
+    };
+    const wireOmCheck = (id, key) => {
+        const el = $(`g-om-${id}`);
+        if (!el) return;
+        el.addEventListener('change', e => {
+            patchPath('globals.objectMarkers.' + key, e.target.checked);
+            g.objectMarkers = g.objectMarkers || {};
+            g.objectMarkers[key] = e.target.checked;
+        });
+    };
+    const fmt2 = v => Number(v).toFixed(2);
+    const fmt1 = v => Number(v).toFixed(1);
+
+    wireOmCheck('enabled', 'enabled');
+    wireOm('type',  'markerType',          v => parseInt(v, 10));
+    wireOm('scale', 'markerScale',         v => parseFloat(v), fmt2);
+    wireOm('yoff',  'yOffset',             v => parseFloat(v), fmt2);
+    wireOm('draw',  'drawDistance',        v => parseFloat(v), fmt1);
+    wireOm('act',   'activationDistance',  v => parseFloat(v), fmt2);
+    wireOm('scan',  'scanRadius',          v => parseFloat(v), fmt1);
+    wireOmCheck('bob', 'bobbing');
 }
 
 // ============================================================
