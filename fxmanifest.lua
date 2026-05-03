@@ -91,6 +91,7 @@ client_scripts {
     'client/raycast.lua',
     'client/highlight.lua',
     'client/bridge_ox.lua',    -- ox_target Kompatibilitaets-Bridge (vor menu.lua!)
+    'client/object_markers.lua', -- Marker-basierte Prop-Erkennung (statt Raycast)
     'client/zones.lua',        -- Zone-Erkennung (BoxZone/SphereZone/Polygon)
     'client/npcs.lua',         -- NPC-Spawner + Tracking
     'client/identity.lua',     -- Identity-Overlay + Handshake-Animationen

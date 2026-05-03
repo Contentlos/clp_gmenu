@@ -121,8 +121,35 @@ function BC.give(srcGiver, srcReceiver)
 end
 
 -- Event-Trigger (vom Identity-System, wenn Spieler "Visitenkarte zeigen" waehlt)
+-- Anti-Exploit:
+--   - Rate-Limit (P.consumeAction) verhindert Spam
+--   - Distanz-Check zwischen Giver und Receiver (max 5m) verhindert Cross-Map-Abuse
+--   - receiverSrc muss ein gueltiger, online Spieler sein
 RegisterNetEvent('clp_gmenu:identity:giveBusinessCard', function(receiverSrc)
     local src = source
+    if not src or src == 0 then return end
+    receiverSrc = tonumber(receiverSrc)
+    if not receiverSrc or receiverSrc == src then return end
+
+    local Perms = GMenu and GMenu.Perms
+    if Perms and Perms.consumeAction and not Perms.consumeAction(src) then
+        TriggerClientEvent('clp_gmenu:notify', src, {
+            type = 'error', description = 'Zu viele Anfragen, kurz warten.',
+        })
+        return
+    end
+
+    local giverPed    = GetPlayerPed(src)
+    local receiverPed = GetPlayerPed(receiverSrc)
+    if not giverPed or not receiverPed or giverPed == 0 or receiverPed == 0 then return end
+    local d = #(GetEntityCoords(giverPed) - GetEntityCoords(receiverPed))
+    if d > 5.0 then
+        TriggerClientEvent('clp_gmenu:notify', src, {
+            type = 'error', description = 'Empfaenger ist zu weit entfernt.',
+        })
+        return
+    end
+
     local ok = BC.give(src, receiverSrc)
     TriggerClientEvent('clp_gmenu:notify', src, {
         type = ok and 'success' or 'error',

@@ -124,9 +124,11 @@ local function resolveTarget(entity, hitCoords)
     end
 
     if isObj then
-        t.type   = 'object'
-        t.label  = 'Objekt'
-        return t
+        -- Objects/Props werden NICHT mehr ueber Raycast erfasst (unzuverlaessig
+        -- bei Map-Props mit defekten Bounds). Stattdessen uebernimmt
+        -- `client/object_markers.lua` per Pool-Scan die Prop-Erkennung +
+        -- veroeffentlicht den naechsten Prop als Ziel ueber `OM.getCurrent()`.
+        return nil
     end
 
     -- isPed
@@ -304,6 +306,15 @@ CreateThread(function()
                 target = resolveTarget(entityHit, endCoords)
                 if target and target.distance > maxDist then
                     target = nil
+                end
+            end
+
+            -- Object-Marker-Fallback: kein Entity getroffen, aber Prop in Reichweite?
+            -- (Marker-System ersetzt Raycast fuer statische Props, siehe object_markers.lua)
+            if not target and GMenu.ObjectMarkers and GMenu.ObjectMarkers.getCurrent then
+                local propTarget = GMenu.ObjectMarkers.getCurrent()
+                if propTarget then
+                    target = propTarget
                 end
             end
 

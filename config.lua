@@ -56,6 +56,26 @@ Config.OutlineColor = { r = 255, g = 50,  b = 50  }
 Config.MarkerColor  = { r = 50,  g = 150, b = 255 }
 
 -- ============================================================
+--  OBJECT-MARKER (Props)
+--  Raycast ist auf statischen Map-Props unzuverlaessig (kaputte Bounds).
+--  Statt Raycast zeigen wir Marker ueber registrierten Props (registerModelAction
+--  / addModel / addEntity / addLocalEntity) und uebernehmen den naechsten
+--  als aktives Ziel sobald der Spieler in Aktivierungs-Reichweite ist.
+-- ============================================================
+Config.ObjectMarkers = {
+    enabled            = true,
+    markerType         = 2,        -- 2 = vertikaler Pfeil, 1 = Bodenkreis, 25 = ringFlat
+    markerScale        = 0.35,
+    drawDistance       = 8.0,      -- Marker werden ab dieser Distanz gezeichnet
+    activationDistance = 1.8,      -- Innerhalb -> Prop wird aktives Ziel (G oeffnet)
+    bobbing            = true,     -- Sanftes Auf-/Abwippen
+    yOffset            = 1.1,      -- Hoehe ueber dem Prop (relativ zum Modell-Z)
+    scanRadius         = 12.0,     -- Suchradius fuer Props in Naehe
+    scanIntervalIdle   = 600,      -- ms wenn nichts in Reichweite
+    scanIntervalActive = 200,      -- ms wenn mind. ein Prop in Reichweite
+}
+
+-- ============================================================
 --  EFFEKTE / ANIMATIONEN
 -- ============================================================
 Config.OutlinePulse       = true     -- Fahrzeug-Outline pulsiert sanft

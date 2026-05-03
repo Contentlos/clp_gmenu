@@ -918,7 +918,7 @@ function renderGlobals() {
         <div class="form-row">
             <label>Default Sound-Preset (Server)</label>
             <select id="g-sound-preset">
-                ${['soft','crisp','retro','off'].map(p => `<option value="${p}" ${(g.defaultSoundPreset || 'soft') === p ? 'selected' : ''}>${p}</option>`).join('')}
+                ${['soft','crisp','retro','sci_fi','off'].map(p => `<option value="${p}" ${(g.defaultSoundPreset || 'soft') === p ? 'selected' : ''}>${p}</option>`).join('')}
             </select>
         </div>
         <div class="form-row">

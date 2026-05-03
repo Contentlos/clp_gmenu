@@ -247,8 +247,11 @@ CreateThread(function()
                         AddTextComponentString(('[H] %s einlagern (Abschlepphof %s)'):format(plate, lotId))
                         DisplayHelpTextFromStringLabel(0, false, false, -1)
                         if IsControlJustReleased(0, 74) then    -- H
-                            TaskLeaveVehicle(ply, veh, 0)
+                            -- Server-Event ZUERST, damit der Server-Distanz-Check
+                            -- den Spieler noch im Fahrzeug sieht. TaskLeaveVehicle
+                            -- danach, damit visuelle Animation nicht haengt.
                             TriggerServerEvent('clp_gmenu:impound:store', plate, lotId)
+                            TaskLeaveVehicle(ply, veh, 0)
                             recentlyReleased[plate] = nil
                         end
                     end
