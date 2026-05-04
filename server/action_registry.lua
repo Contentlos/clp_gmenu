@@ -357,29 +357,59 @@ function Registry.execute(src, payload)
         })
     end
 
-    -- BRIDGE-Aktion (von Drittanbieter-Resource registriert)
-    -- Nicht via Whitelist, weil Bridge-Aktionen aus Resource-Code stammen (vertraut),
-    -- nicht aus User-Input. Dispatch nach normalisiertem `type`-Feld.
-    if isBridge then
-        return dispatchBridgeAction(src, target, action, payload)
-    end
-
-    -- Ausfuehrung
-    if action.handler and handlers[action.handler] then
-        local ok, err = pcall(handlers[action.handler], src, target, payload.extra or {}, action)
-        if not ok then
-            print(('^1[clp_gmenu]^0 Handler "%s" Fehler: %s'):format(action.handler, tostring(err)))
-            return false, 'Handler-Fehler'
+    -- ============================================================
+    -- Eigentliche Ausfuehrung (kann durch Approval-Gate zeitversetzt werden)
+    -- ============================================================
+    local function runFinal()
+        if isBridge then
+            return dispatchBridgeAction(src, target, action, payload)
         end
-        return err == nil or err == true or type(err) == 'table'
+        if action.handler and handlers[action.handler] then
+            local ok, err = pcall(handlers[action.handler], src, target, payload.extra or {}, action)
+            if not ok then
+                print(('^1[clp_gmenu]^0 Handler "%s" Fehler: %s'):format(action.handler, tostring(err)))
+                return false, 'Handler-Fehler'
+            end
+            return err == nil or err == true or type(err) == 'table'
+        end
+        if action.type then
+            return dispatchCustomAction(src, target, action)
+        end
+        return false, 'Kein Handler gefunden'
     end
 
-    -- Fallback: Custom-Aktion
-    if action.type then
-        return dispatchCustomAction(src, target, action)
+    -- ============================================================
+    -- Approval-Gate: action.requiresApproval == true erfordert J/N vom Empfaenger
+    -- (gilt nur fuer Spieler-Targets, nicht fuer self/object/zone/ped/vehicle)
+    -- ============================================================
+    if action.requiresApproval and target.isPlayer and target.targetSrc and target.targetSrc ~= src then
+        if not GMenu.Approvals or not GMenu.Approvals.request then
+            -- Module noch nicht geladen -> direkt ausfuehren (degradiert sicher)
+            return runFinal()
+        end
+        TriggerClientEvent('ox_lib:notify', src, {
+            type = 'inform',
+            description = 'Anfrage gesendet, warte auf Antwort...',
+        })
+        GMenu.Approvals.request(src, target.targetSrc, {
+            actionId    = payload.actionId,
+            actionLabel = action.label or payload.actionId,
+        }, function(accepted, reason)
+            if accepted then
+                runFinal()
+            else
+                local msg = 'Anfrage wurde abgelehnt.'
+                if reason == 'timeout' then msg = 'Anfrage abgelaufen.'
+                elseif reason == 'too_far' then msg = 'Empfaenger zu weit weg.'
+                elseif reason == 'offline' then msg = 'Empfaenger offline.'
+                end
+                TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = msg })
+            end
+        end)
+        return true
     end
 
-    return false, 'Kein Handler gefunden'
+    return runFinal()
 end
 
 -- ============================================================

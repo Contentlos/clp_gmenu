@@ -33,6 +33,10 @@ RegisterNetEvent('clp_gmenu:identity:learned', function(payload)
     if payload.serverId then
         I.serverIdToName[tostring(payload.serverId)] = payload.name
     end
+    -- Force-Refresh: lastResolveAt zuruecksetzen, damit das naechste resolveNearby
+    -- garantiert den Server fragt und die jetzt bekannte Identitaet aktualisiert
+    -- (auch wichtig wenn beide Spieler durch andere Mechaniken gelernt wurden).
+    I.lastResolveAt = 0
     if GMenu.UI then
         GMenu.UI.notify({
             type = 'success',
@@ -52,9 +56,22 @@ RegisterNetEvent('clp_gmenu:identity:incomingHandshake', function(payload)
     local fromSrc = tonumber(payload.fromSrc)
     if not fromSrc then return end
     local label = payload.fromLabel or 'Unbekannte Person'
-    -- ox_lib alert dialog (with timeout)
-    if lib and lib.alertDialog then
-        local p = promise and promise.new() or nil
+    local timeout = tonumber(payload.timeoutMs) or 10000
+
+    -- Native J/N Prompt (keine ox_lib-Abhaengigkeit, einheitliche UX)
+    if GMenu.ApprovalPrompt and GMenu.ApprovalPrompt.show then
+        GMenu.ApprovalPrompt.show({
+            title     = 'Hand geben?',
+            fromLabel = label,
+            body      = 'moechte dir die Hand geben.',
+            timeoutMs = timeout,
+        }, function(accepted)
+            TriggerServerEvent('clp_gmenu:identity:respondHandshake', {
+                fromSrc = fromSrc,
+                accept  = accepted == true,
+            })
+        end)
+    elseif lib and lib.alertDialog then
         CreateThread(function()
             local result = lib.alertDialog({
                 header = 'Hand geben?',
@@ -69,8 +86,7 @@ RegisterNetEvent('clp_gmenu:identity:incomingHandshake', function(payload)
             })
         end)
     else
-        -- Fallback: immediate accept (less secure but functional)
-        TriggerServerEvent('clp_gmenu:identity:respondHandshake', { fromSrc = fromSrc, accept = true })
+        TriggerServerEvent('clp_gmenu:identity:respondHandshake', { fromSrc = fromSrc, accept = false })
     end
 end)
 

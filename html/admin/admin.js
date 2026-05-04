@@ -670,6 +670,7 @@ function renderActions() {
                     <span class="tag target-${a.target || 'both'}">${a.target || 'both'}</span>
                     ${a.permission ? `<span class="tag perm">${escapeHtml(a.permission)}</span>` : ''}
                     ${a.handler ? `<span class="tag">handler:${escapeHtml(a.handler)}</span>` : ''}
+                    ${a.requiresApproval ? '<span class="tag" style="background:#3a2;color:#fff;">Anfrage</span>' : ''}
                 </div>
             </div>
         `;
@@ -711,6 +712,7 @@ function renderCustomActions() {
                 <div class="card-tags">
                     <span class="tag target-${a.target || 'both'}">${a.target || 'both'}</span>
                     <span class="tag">${escapeHtml(a.type)}</span>
+                    ${a.requiresApproval ? '<span class="tag" style="background:#3a2;color:#fff;">Anfrage</span>' : ''}
                 </div>
             </div>
             <div class="card-actions">
@@ -743,6 +745,7 @@ function openCustomModal(editId) {
         $('custom-target').value = a.target || 'player';
         $('custom-type').value = a.type || 'notify';
         $('custom-payload').value = typeof a.payload === 'string' ? a.payload : JSON.stringify(a.payload || '');
+        const ap = $('custom-approval'); if (ap) ap.checked = a.requiresApproval === true;
     } else {
         $('custom-id').value = '';
         $('custom-id').disabled = false;
@@ -751,6 +754,7 @@ function openCustomModal(editId) {
         $('custom-target').value = 'player';
         $('custom-type').value = 'notify';
         $('custom-payload').value = '';
+        const ap = $('custom-approval'); if (ap) ap.checked = false;
     }
 
     updateCustomHint();
@@ -784,6 +788,7 @@ function saveCustomAction() {
         target: $('custom-target').value,
         type:   $('custom-type').value,
         payload: ($('custom-payload').value || '').trim(),
+        requiresApproval: !!($('custom-approval') && $('custom-approval').checked),
     };
 
     if (!def.label) { alert('Label fehlt.'); return; }

@@ -13,6 +13,14 @@ end
 -- ============================================================
 Registry.register('civ_handshake', function(src, target, payload, action)
     if not target.targetSrc then return false end
+    -- Identitaets-Anfrage starten (J/N Prompt beim Empfaenger).
+    -- Nur wenn die Anfrage vom Empfaenger angenommen wird, lernen sich
+    -- beide Spieler kennen + Animation laeuft via Identity.acceptHandshake.
+    if Identity and Identity.requestHandshake then
+        local ok = Identity.requestHandshake(src, target.targetSrc)
+        if ok then return true end
+    end
+    -- Fallback (ohne Identity): direkte Animation, kein Identitaets-Lernen
     TriggerClientEvent('clp_gmenu:civ:handshake', src,             target.targetSrc)
     TriggerClientEvent('clp_gmenu:civ:handshake', target.targetSrc, src)
     return true

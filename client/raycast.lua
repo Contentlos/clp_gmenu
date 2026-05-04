@@ -126,8 +126,7 @@ local function resolveTarget(entity, hitCoords)
     if isObj then
         -- Objects/Props werden NICHT mehr ueber Raycast erfasst (unzuverlaessig
         -- bei Map-Props mit defekten Bounds). Stattdessen uebernimmt
-        -- `client/object_markers.lua` per Pool-Scan die Prop-Erkennung +
-        -- veroeffentlicht den naechsten Prop als Ziel ueber `OM.getCurrent()`.
+        -- `client/object_markers.lua` per Pool-Scan die Prop-Erkennung.
         return nil
     end
 
@@ -149,33 +148,15 @@ local function resolveTarget(entity, hitCoords)
             pname = sid >= 0 and GetPlayerName(sid) or 'Player'
         end
         t.label = ('%s (#%s)'):format(pname or 'Player', t.serverId or '?')
-    else
-        -- NPC / Ped
-        t.type = 'ped'
-        t.label = 'NPC'
-
-        -- StateBag: Wenn von clp_gmenu NPC-Manager gespawnt, hat der Ped
-        -- die ID hinterlegt (siehe client/npcs.lua)
-        local stateOk, npcId = pcall(function()
-            return Entity(entity).state and Entity(entity).state.clp_npc_id
-        end)
-        if stateOk and type(npcId) == 'string' and npcId ~= '' then
-            t.npcId = npcId
-        end
-
-        -- Fuer nicht-vernetzte NPCs: Netzwerk-Kontrolle anfordern
-        if t.netId == 0 then
-            if not NetworkGetEntityIsNetworked(entity) then
-                NetworkRegisterEntityAsNetworked(entity)
-            end
-            if NetworkGetEntityIsNetworked(entity) then
-                t.netId = NetworkGetNetworkIdFromEntity(entity)
-            end
-        end
+        t.isDead = IsPedDeadOrDying(entity, true)
+        return t
     end
 
-    t.isDead = IsPedDeadOrDying(entity, true)
-    return t
+    -- NPCs werden ebenfalls nicht mehr per Raycast erkannt (zu viele
+    -- Fehl-Hits bei Bevoelkerungs-Peds, Tieren, etc.). Statt dessen
+    -- uebernimmt `client/npc_markers.lua` per Ped-Pool-Scan + StateBag-
+    -- Filter (clp_npc_id) die NPC-Erkennung.
+    return nil
 end
 
 -- ============================================================
@@ -309,8 +290,14 @@ CreateThread(function()
                 end
             end
 
-            -- Object-Marker-Fallback: kein Entity getroffen, aber Prop in Reichweite?
-            -- (Marker-System ersetzt Raycast fuer statische Props, siehe object_markers.lua)
+            -- Marker-Fallback: kein Entity vom Raycast, aber NPC oder Prop in Reichweite?
+            -- (Markers ersetzen Raycast fuer NPCs/Props - siehe npc_markers.lua / object_markers.lua)
+            if not target and GMenu.NpcMarkers and GMenu.NpcMarkers.getCurrent then
+                local npcTarget = GMenu.NpcMarkers.getCurrent()
+                if npcTarget then
+                    target = npcTarget
+                end
+            end
             if not target and GMenu.ObjectMarkers and GMenu.ObjectMarkers.getCurrent then
                 local propTarget = GMenu.ObjectMarkers.getCurrent()
                 if propTarget then

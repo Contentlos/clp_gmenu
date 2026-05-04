@@ -456,9 +456,55 @@ Config.DefaultActionsSeed = {
 }
 
 -- ============================================================
---  NPCs / ZONES SEED (leer als Default - verwaltet via Admin UI)
+--  NPCs SEED
+--  Standard-NPCs werden beim allerersten Server-Start in den Store
+--  geseeded. Aenderungen via /gmenuadmin (Tab "NPCs") werden persistiert
+--  und ueberschreiben die Defaults.
 -- ============================================================
-Config.NPCsSeed  = {}
+Config.NPCsSeed  = {
+    -- Abschleppdienst-Mitarbeiter an den drei Default-Hoefen.
+    -- Spieler koennen so direkt am Hof mit dem System interagieren,
+    -- auch wenn aktuell kein eigenes Fahrzeug beschlagnahmt ist.
+    impound_los_santos = {
+        id          = 'impound_los_santos',
+        label       = 'Abschleppdienst-Mitarbeiter',
+        name        = 'Abschleppdienst Los Santos',
+        model       = 's_m_y_dealer_01',
+        coords      = { x = 409.6, y = -1622.3, z = 28.3 },
+        heading     = 90.0,
+        invincible  = true,
+        frozen      = true,
+        blockEvents = true,
+        scenario    = 'WORLD_HUMAN_CLIPBOARD',
+        enabled     = true,
+    },
+    impound_sandy_shores = {
+        id          = 'impound_sandy_shores',
+        label       = 'Abschleppdienst-Mitarbeiter',
+        name        = 'Abschleppdienst Sandy Shores',
+        model       = 's_m_y_dealer_01',
+        coords      = { x = 1644.0, y = 3789.5, z = 33.7 },
+        heading     = 30.0,
+        invincible  = true,
+        frozen      = true,
+        blockEvents = true,
+        scenario    = 'WORLD_HUMAN_CLIPBOARD',
+        enabled     = true,
+    },
+    impound_paleto_bay = {
+        id          = 'impound_paleto_bay',
+        label       = 'Abschleppdienst-Mitarbeiter',
+        name        = 'Abschleppdienst Paleto Bay',
+        model       = 's_m_y_dealer_01',
+        coords      = { x = -181.0, y = 6276.0, z = 30.6 },
+        heading     = 135.0,
+        invincible  = true,
+        frozen      = true,
+        blockEvents = true,
+        scenario    = 'WORLD_HUMAN_CLIPBOARD',
+        enabled     = true,
+    },
+}
 Config.ZonesSeed = {}
 
 -- ============================================================

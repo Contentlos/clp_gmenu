@@ -73,6 +73,7 @@ server_scripts {
     'server/bridge.lua',           -- Server-Bridge fuer Drittanbieter-Aktionen
     'server/action_registry.lua',
     'server/identity.lua',         -- Identity / Handshake / Known-Players
+    'server/approvals.lua',        -- Generisches Anfrage-System (J/N)
     'server/npcs.lua',             -- NPC Manager (CRUD + Sync)
     'server/zones.lua',            -- Zone Manager (CRUD + Sync)
     'server/main.lua',
@@ -94,6 +95,9 @@ client_scripts {
     'client/object_markers.lua', -- Marker-basierte Prop-Erkennung (statt Raycast)
     'client/zones.lua',        -- Zone-Erkennung (BoxZone/SphereZone/Polygon)
     'client/npcs.lua',         -- NPC-Spawner + Tracking
+    'client/npc_markers.lua',  -- Marker-basierte NPC-Erkennung (statt Raycast)
+    'client/approval_prompt.lua', -- Generischer J/N Bestaetigungs-Prompt
+    'client/approvals.lua',    -- Empfaengt Approval-Requests vom Server
     'client/identity.lua',     -- Identity-Overlay + Handshake-Animationen
     'client/menu.lua',
     'client/actions.lua',

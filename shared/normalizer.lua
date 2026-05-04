@@ -53,21 +53,22 @@ end
 function N.fromStandard(action, id)
     if type(action) ~= 'table' then return nil end
     return {
-        id           = safeId(id or action.id),
-        label        = action.label or 'Aktion',
-        icon         = safeIcon(action.icon),
-        target       = VALID_TARGETS[action.target] and action.target or 'any',
-        type         = VALID_TYPES[action.type] and action.type or 'handler',
-        event        = action.event,
-        payload      = action.payload,
-        requiredJob  = action.requiredJob,
-        requiredGrade= action.requiredGrade,
-        requiredDuty = action.requiredDuty,
-        permission   = action.permission,
-        distance     = tonumber(action.distance) or 3.0,
-        canInteract  = action.canInteract,
-        source       = action.source or 'clp',
-        handler      = action.handler,
+        id              = safeId(id or action.id),
+        label           = action.label or 'Aktion',
+        icon            = safeIcon(action.icon),
+        target          = VALID_TARGETS[action.target] and action.target or 'any',
+        type            = VALID_TYPES[action.type] and action.type or 'handler',
+        event           = action.event,
+        payload         = action.payload,
+        requiredJob     = action.requiredJob,
+        requiredGrade   = action.requiredGrade,
+        requiredDuty    = action.requiredDuty,
+        permission      = action.permission,
+        distance        = tonumber(action.distance) or 3.0,
+        canInteract     = action.canInteract,
+        source          = action.source or 'clp',
+        handler         = action.handler,
+        requiresApproval= action.requiresApproval and true or false,
     }
 end
 
@@ -75,16 +76,17 @@ end
 function N.fromCustom(action, id)
     if type(action) ~= 'table' then return nil end
     return {
-        id           = safeId(id or action.id),
-        label        = action.label or 'Custom',
-        icon         = safeIcon(action.icon),
-        target       = VALID_TARGETS[action.target] and action.target or 'any',
-        type         = VALID_TYPES[action.type] and action.type or 'notify',
-        event        = action.event,
-        payload      = action.payload,
-        permission   = action.permission,
-        distance     = tonumber(action.distance) or 3.0,
-        source       = 'custom',
+        id              = safeId(id or action.id),
+        label           = action.label or 'Custom',
+        icon            = safeIcon(action.icon),
+        target          = VALID_TARGETS[action.target] and action.target or 'any',
+        type            = VALID_TYPES[action.type] and action.type or 'notify',
+        event           = action.event,
+        payload         = action.payload,
+        permission      = action.permission,
+        distance        = tonumber(action.distance) or 3.0,
+        source          = 'custom',
+        requiresApproval= action.requiresApproval and true or false,
     }
 end
 

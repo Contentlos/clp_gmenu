@@ -141,6 +141,11 @@
                                     <textarea id="custom-payload" placeholder="Bei Notify: Text. Bei Event: Event-Name. Bei Command: 'me hallo'."></textarea>
                                     <small id="custom-hint" class="hint"></small>
                                 </div>
+                                <div class="form-row">
+                                    <label>Anfrage erforderlich (J/N beim Empfaenger)</label>
+                                    <label class="toggle-mini"><input type="checkbox" id="custom-approval"><span class="slider"></span></label>
+                                </div>
+                                <small class="hint" style="display:block;margin:-6px 0 8px 0;">Wenn aktiv: Spieler-Targets sehen einen J/N Prompt. Erst bei "J" wird die Aktion ausgefuehrt.</small>
                             </div>
                             <footer class="modal-footer">
                                 <button class="btn-ghost" id="custom-cancel">Abbrechen</button>
