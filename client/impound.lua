@@ -175,8 +175,13 @@ end)
 -- Beim Resource-Stop: alles aufraeumen
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
+    -- Plates erst sammeln, dann despawnen (Lua 5.4: keine Mutation in pairs())
+    local toClean = {}
     for plate, _ in pairs(spawnedVehs) do
-        despawnVehicle(plate)
+        toClean[#toClean + 1] = plate
+    end
+    for i = 1, #toClean do
+        despawnVehicle(toClean[i])
     end
     for _, b in ipairs(lotBlips) do RemoveBlip(b) end
 end)

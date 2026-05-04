@@ -77,9 +77,36 @@ local function findFreeSlot(lotId)
     return nil
 end
 
+-- Sicherheits-Filter: was Clients sehen duerfen.
+-- ownerIdentifier (z.B. Steam/License-ID), addedBy (Server-Source) und reason
+-- bleiben serverseitig fuer Audit/Exports, gehen NIE an Clients.
+local function sanitizeEntry(e)
+    if type(e) ~= 'table' then return nil end
+    return {
+        plate     = e.plate,
+        lotId     = e.lotId,
+        slotIndex = e.slotIndex,
+        fee       = e.fee,
+        modelHash = e.modelHash,
+        addedAt   = e.addedAt,
+    }
+end
+
+local function sanitizeMap(map)
+    local out = {}
+    for k, v in pairs(map) do out[k] = sanitizeEntry(v) end
+    return out
+end
+
+local function sanitizeArray(arr)
+    local out = {}
+    for i = 1, #arr do out[i] = sanitizeEntry(arr[i]) end
+    return out
+end
+
 local function broadcastState()
-    -- alle clients bekommen das aktuelle impound dict
-    TriggerClientEvent('clp_gmenu:impound:sync', -1, impounded)
+    -- alle clients bekommen das aktuelle impound dict (sanitized)
+    TriggerClientEvent('clp_gmenu:impound:sync', -1, sanitizeMap(impounded))
 end
 
 local function persistAdd(entry)
@@ -594,9 +621,10 @@ end, false)
 --  CALLBACKS / EXPORTS
 -- ============================================================
 
+-- Client-Callback: liefert sanitized Liste (kein ownerIdentifier/addedBy/reason)
 lib.callback.register('clp_gmenu:impound:list', function(_, lotId)
-    if lotId then return Imp.listAtLot(lotId) end
-    return Imp.list()
+    if lotId then return sanitizeArray(Imp.listAtLot(lotId)) end
+    return sanitizeArray(Imp.list())
 end)
 
 exports('impoundVehicle',         function(opts) return Imp.add(opts) end)
