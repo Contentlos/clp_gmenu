@@ -98,8 +98,15 @@ lib.callback.register('clp_gmenu:admin:audit', function(src, opts)
         local e = raw[i]
         local pass = true
         if filter.actor then
-            local s = tostring(e.actor or e.src or ''):lower()
-            if not s:find(filter.actor, 1, true) then pass = false end
+            -- Audit-Eintraege haben `name` (Spielername) und `src` (numerische ID),
+            -- aber kein `actor`-Feld. Beides matchen, damit der Admin sowohl
+            -- nach Namen als auch ID filtern kann.
+            local nameStr = tostring(e.name or ''):lower()
+            local srcStr  = tostring(e.src  or ''):lower()
+            if not (nameStr:find(filter.actor, 1, true)
+                    or srcStr:find(filter.actor, 1, true)) then
+                pass = false
+            end
         end
         if pass and filter.action then
             local s = tostring(e.action or ''):lower()
