@@ -86,13 +86,15 @@ local function persistAdd(entry)
     if not Config.UseSqlFallback or not exports.oxmysql then return end
     pcall(function()
         exports.oxmysql:execute([[
-            INSERT INTO clp_gmenu_impound (plate, lot_id, slot_index, fee, owner_identifier, reason, added_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO clp_gmenu_impound (plate, lot_id, slot_index, fee, owner_identifier, reason, model_hash, added_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
             ON DUPLICATE KEY UPDATE lot_id=VALUES(lot_id), slot_index=VALUES(slot_index),
                                     fee=VALUES(fee), owner_identifier=VALUES(owner_identifier),
-                                    reason=VALUES(reason), added_at=NOW();
+                                    reason=VALUES(reason), model_hash=VALUES(model_hash),
+                                    added_at=NOW();
         ]], { entry.plate, entry.lotId, entry.slotIndex, entry.fee,
-              entry.ownerIdentifier or '', entry.reason or '' })
+              entry.ownerIdentifier or '', entry.reason or '',
+              entry.modelHash or 0 })
     end)
 end
 
@@ -114,10 +116,18 @@ local function ensureSchema()
                 `fee`              INT          NOT NULL DEFAULT 0,
                 `owner_identifier` VARCHAR(64)  NULL,
                 `reason`           VARCHAR(128) NULL,
+                `model_hash`       BIGINT       NULL,
                 `added_at`         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`plate`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ]])
+        -- Migration: model_hash Spalte fuer existierende Tabellen ergaenzen
+        pcall(function()
+            exports.oxmysql:execute([[
+                ALTER TABLE `clp_gmenu_impound`
+                ADD COLUMN IF NOT EXISTS `model_hash` BIGINT NULL AFTER `reason`;
+            ]])
+        end)
     end)
 end
 
@@ -133,6 +143,7 @@ local function loadFromSql()
                 fee             = row.fee,
                 ownerIdentifier = row.owner_identifier,
                 reason          = row.reason,
+                modelHash       = row.model_hash and tonumber(row.model_hash) or nil,
                 addedAt         = os.time(),
             }
         end

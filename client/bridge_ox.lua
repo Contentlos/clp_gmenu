@@ -99,7 +99,10 @@ local function isInsidePoly(pos, points)
         local pj = points[j]
         local xi, yi = pi.x or pi[1], pi.y or pi[2]
         local xj, yj = pj.x or pj[1], pj.y or pj[2]
-        if ((yi > y) ~= (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi) then
+        -- yi != yj ist durch ((yi > y) ~= (yj > y)) bereits garantiert,
+        -- daher kein Epsilon im Nenner noetig (sonst flippt das Vorzeichen
+        -- bei sehr kleinen negativen Differenzen und das Ergebnis wird falsch).
+        if ((yi > y) ~= (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi) then
             inside = not inside
         end
         j = i

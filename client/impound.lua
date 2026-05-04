@@ -91,11 +91,17 @@ local function despawnVehicle(plate)
 end
 
 local function syncSpawns()
-    -- Despawn was nicht mehr im State ist
+    -- Despawn was nicht mehr im State ist.
+    -- Plates erst sammeln, dann despawnen -- in Lua 5.4 ist Mutation
+    -- waehrend pairs() undefiniert (Eintraege koennten uebersprungen werden).
+    local toDespawn = {}
     for plate, _ in pairs(spawnedVehs) do
         if not impState[plate] then
-            despawnVehicle(plate)
+            toDespawn[#toDespawn + 1] = plate
         end
+    end
+    for i = 1, #toDespawn do
+        despawnVehicle(toDespawn[i])
     end
     -- Spawn was im State ist aber noch nicht da
     for plate, entry in pairs(impState) do
