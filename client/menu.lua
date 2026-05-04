@@ -430,6 +430,12 @@ lib.addKeybind({
         if IsPauseMenuActive() then return end
         if IsNuiFocused() and not M.open then return end
         if not Config.SelfMenuEnabled then return end
+        -- Bei aktivem J/N Approval-Prompt KEIN Self-Menu oeffnen
+        -- (J in dem Moment gehoert dem Prompt fuer "Annehmen").
+        if GMenu.ApprovalPrompt and GMenu.ApprovalPrompt.isActive
+           and GMenu.ApprovalPrompt.isActive() then
+            return
+        end
 
         if M.open then
             M.close_()

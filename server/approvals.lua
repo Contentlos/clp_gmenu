@@ -124,10 +124,19 @@ end)
 
 AddEventHandler('playerDropped', function()
     local src = source
+    -- Erst Tokens sammeln, dann verarbeiten -- der Callback koennte
+    -- neue Eintraege in Pending hinzufuegen (z.B. erneute Approval-
+    -- Anfrage), und Modifikation waehrend pairs() ist nicht in jeder
+    -- Lua-Implementierung wohldefiniert.
+    local toProcess = {}
     for token, p in pairs(Pending) do
         if p.fromSrc == src or p.toSrc == src then
-            cleanup(token)
-            if p.cb then pcall(p.cb, false, 'dropped') end
+            toProcess[#toProcess + 1] = { token = token, cb = p.cb }
         end
+    end
+    for i = 1, #toProcess do
+        local item = toProcess[i]
+        cleanup(item.token)
+        if item.cb then pcall(item.cb, false, 'dropped') end
     end
 end)

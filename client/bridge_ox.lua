@@ -371,11 +371,18 @@ exports('addGlobalOption', function(data)
     local name = data.name or ('gopt_' .. GetGameTimer())
     local opts = data.options and convertOptions(data.options) or convertOptions(data)
     local distance = data.distance or 3.0
-    -- Eigene Wrapper pro Target-Typ (kein geteiltes Table-Reference)
-    B.globals.ped[name]     = { options = opts, distance = distance }
-    B.globals.vehicle[name] = { options = opts, distance = distance }
-    B.globals.object[name]  = { options = opts, distance = distance }
-    B.globals.player[name]  = { options = opts, distance = distance }
+    -- Eigene Options-Arrays je Target-Typ (kein geteiltes Table-Reference) -
+    -- so dass spaetere In-Place-Mutation eines einzelnen Eintrags die anderen
+    -- nicht beeinflusst.
+    local function copyArr(t)
+        local o = {}
+        for i = 1, #t do o[i] = t[i] end
+        return o
+    end
+    B.globals.ped[name]     = { options = copyArr(opts), distance = distance }
+    B.globals.vehicle[name] = { options = copyArr(opts), distance = distance }
+    B.globals.object[name]  = { options = copyArr(opts), distance = distance }
+    B.globals.player[name]  = { options = copyArr(opts), distance = distance }
     return name
 end)
 
